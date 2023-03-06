@@ -1,4 +1,4 @@
-﻿namespace StudentManagementSystemAPI.Models
+﻿namespace ChatApplication.Models
 {
     public class Response
     {

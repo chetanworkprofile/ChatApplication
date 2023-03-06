@@ -6,54 +6,123 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using ChatApplication.Data;
 
 namespace ChatApplication.Services
 {
     public class AuthService : IAuthService
     {
         Response response = new Response();
-        User user = new User();
+        TokenUser tokenUser = new TokenUser();
+        private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
+        
 
-        public AuthService(IConfiguration configuration)
+        public AuthService(IConfiguration configuration,ChatAppDbContext dbContext)
         {
             this._configuration = configuration;
-            data = File.ReadAllText(Constants.path);
-            details = JsonSerializer.Deserialize<JsonData>(data, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true })!;
+            DbContext = dbContext;
         }
 
-        public Response TeacherLogin(UserDTO request)
+
+        public async Task<Response> CreateUser(InputUser inpUser)
         {
-            int index = details.Teacher.FindIndex(t => t.Username == request.Username);
-            if (index == -1)
+            var DbUsers = DbContext.Users;
+            bool existingUser = DbUsers.Where(u => u.Email == inpUser.Email).Any();
+            if (!existingUser)
+            {
+                var user = new User()
+                {
+                    UserId = Guid.NewGuid(),
+                    PasswordHash = CreatePasswordHash(inpUser.Password),
+                    FirstName = inpUser.FirstName,
+                    LastName = inpUser.LastName,
+                    Email = inpUser.Email,
+                    DateOfBirth = inpUser.DateOfBirth,
+                    CreatedAt= DateTime.Now,
+                    UpdatedAt= DateTime.Now,
+                    IsDeleted = false,
+                    PathToProfilePic = null
+                };
+                var responseUser = new ResponseUser()
+                {
+                    UserId = user.UserId,
+                    FirstName= user.FirstName,
+                    LastName= user.LastName,
+                    Email = user.Email,
+                    Phone= user.Phone,
+                    DateOfBirth= user.DateOfBirth,
+                    CreatedAt= user.CreatedAt,
+                    UpdatedAt= user.UpdatedAt,
+                };
+
+                var tokenUser = new TokenUser()
+                {
+                    Email= inpUser.Email,
+                    FirstName= inpUser.FirstName,
+                   /* LastName= inpUser.LastName,
+                    UserId = user.UserId*/
+                };
+
+                string token = CreateToken(tokenUser);
+                await DbContext.Users.AddAsync(user);
+                await DbContext.SaveChangesAsync();
+                
+                response.StatusCode = 200;
+                response.Message = "User added";
+                response.Data = responseUser;
+                return response;
+            }
+            else
+            {
+                response.StatusCode = 409;
+                response.Message = "Email already registered please try another";
+                response.Data = string.Empty;
+                return response;
+            }
+        }
+
+
+        public Response Login(UserDTO request)
+        {
+            //int index = details.Teacher.FindIndex(t => t.Username == request.Username);
+            var userExists = DbContext.Users.Where(u => u.Email == request.Email).FirstOrDefault();
+            if (userExists == null)
             {
                 response.StatusCode = 404;
                 response.Message = "User not found";
                 response.Data = string.Empty;
                 return response;
             }
-            else if (!VerifyPasswordHash(request.Password, details.Teacher[index].PasswordHash))
+            else if(request.Password == null)
+            {
+                response.StatusCode = 403;
+                response.Message = "Null/Wrong password.";
+                response.Data = string.Empty;
+                return response;
+            }
+            else if (!VerifyPasswordHash(request.Password, userExists.PasswordHash))
             {
                 response.StatusCode = 403;
                 response.Message = "Wrong password.";
                 response.Data = string.Empty;
                 return response;
             }
-            user.Username = request.Username;
-            user.UserRole = "Teacher";
-            string token = CreateToken(user);
+            tokenUser.Email = userExists.Email;
+            tokenUser.FirstName = userExists.FirstName;
+            string token = CreateToken(tokenUser);
             response.StatusCode = 200;
             response.Message = "Login Successful";
             response.Data = token;
             return response;
         }
 
-        internal string CreateToken(User user)
+        internal string CreateToken(TokenUser user)
         {
             List<Claim> claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.UserRole)
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.FirstName)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
@@ -91,38 +160,3 @@ namespace ChatApplication.Services
     }
 }
 
-
-
-
-
-
-
-// just a backup in case there's a need to add student login and authorization
-/*        [HttpPost("StudentRegistration")]
-        public ActionResult<User> StudentRegisteraton(UserDTO request)
-        {
-            user.PasswordHash = CreatePasswordHash(request.Password);
-            user.Username = request.Username;
-            user.UserRole = "Student";
-            //details.Users.Add(user);
-            string token = CreateToken(user);
-
-            return Ok(token);
-        }
-
-        [HttpPost("StudentLogin")]
-        public ActionResult<User> StudentLogin(UserDTO request)
-        {
-            if (user.Username != request.Username)
-            {
-                return BadRequest("User not found");
-            }
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash))
-            {
-                return BadRequest("Wrong password.");
-            }
-            user.UserRole = "Student";
-            string token = CreateToken(user);
-
-            return Ok(token);
-        }*/

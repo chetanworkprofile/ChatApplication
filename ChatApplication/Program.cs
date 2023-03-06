@@ -1,4 +1,7 @@
+using ChatApplication.Data;
+using ChatApplication.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -23,6 +26,9 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
 
+builder.Services.AddDbContext<ChatAppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString")));
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -45,8 +51,8 @@ builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     }
     ));
 
-/*builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ITeacherService, TeacherService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+/*builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
 */

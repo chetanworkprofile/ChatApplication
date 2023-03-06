@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ChatApplication.Models;
 using ChatApplication.Services;
-
+using ChatApplication.Data;
 
 namespace ChatApplication.Controllers
 {
@@ -9,21 +9,19 @@ namespace ChatApplication.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        AuthService authService;
-        TeacherService teacherService;
+        IAuthService authService;
         Response response = new Response();
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IConfiguration configuration, ILogger<AuthController> logger)
+        public AuthController(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
-            authService = new AuthService(configuration);
-            teacherService = new TeacherService(configuration);
+            authService = new AuthService(configuration,dbContext);
             _logger = logger;
         }
 
         [HttpPost]
-        [Route("/api/v1/RegisterTeacher")]
-        public IActionResult AddTeacher([FromBody] AddTeacher addTeacher)
+        [Route("/api/v1/RegisterUser")]
+        public IActionResult RegisterUser([FromBody] InputUser inpUser)
         {
             /*if(!ModelState.IsValid)
             {
@@ -34,32 +32,45 @@ namespace ChatApplication.Controllers
             }*/
             try
             {
-                _logger.LogInformation("Add Teacher method started");
-                Response response = teacherService.AddTeacher(addTeacher);
+                _logger.LogInformation("Register User method started");
+                Response response = authService.CreateUser(inpUser).Result;
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
-                return StatusCode(500, $"Internal server error: {ex}"); ;
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data= ex.Data;
+                return StatusCode(500, response);
             }
         }
 
-        [HttpPost("TeacherLogin")]
-        public ActionResult<User> TeacherLogin(UserDTO request)
+        [HttpPost("UserLogin")]
+        public ActionResult<User> UserLogin(UserDTO request)
         {
-            _logger.LogInformation("Teacher Login attempt");
-            response = authService.TeacherLogin(request);
+            _logger.LogInformation("User Login attempt");
+            try
+            {
+                response = authService.Login(request);
 
-            if (response.StatusCode == 404)
-            {
-                return BadRequest(response);
+                if (response.StatusCode == 404)
+                {
+                    return BadRequest(response);
+                }
+                else if (response.StatusCode == 403)
+                {
+                    return BadRequest(response);
+                }
+                return Ok(response);
             }
-            else if (response.StatusCode == 403)
+            catch (Exception ex)
             {
-                return BadRequest(response);
+                response.StatusCode=500;
+                response.Message = ex.Message;
+                response.Data= ex.Data;
+                return StatusCode(500, response);
             }
-            return Ok(response);
         }
     }
 }
