@@ -2,6 +2,9 @@
 using ChatApplication.Models;
 using ChatApplication.Services;
 using ChatApplication.Data;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace ChatApplication.Controllers
 {
@@ -72,6 +75,26 @@ namespace ChatApplication.Controllers
                 return StatusCode(500, response);
             }
         }
+
+        [HttpGet]
+        public async Task Login()
+        {
+            await HttpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new AuthenticationProperties() 
+            { 
+                RedirectUri = Url.Action("/signin-google")
+            });
+        }
+        /*public async Task<void> GoogleResponse()
+        {
+            var result = await HttpContext.AuthenticateAsync(JwtBearerDefaults.AuthenticationScheme);
+            var claims = result.Principal.Identities.FirstOrDefault().Claims.Select(claim => new
+            {
+                claim.Issuer,
+                claim.OriginalIssuer,
+                claim.Type,
+                claim.Value
+            });
+        }*/
     }
 }
    

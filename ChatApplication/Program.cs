@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +32,11 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddDbContext<ChatAppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString")));
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
         .AddJwtBearer(options =>
         {
             options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
@@ -42,12 +49,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 ValidateAudience = false,
                 ClockSkew = TimeSpan.Zero
             };
+        }).AddGoogle(GoogleOptions =>
+        {
+            GoogleOptions.ClientId = "336034687630-sghvipd2u0vi3q07ttfqrqskhq8qhq39.apps.googleusercontent.com"; //builder.Configuration.GetSection("Authentication:Google:client_id").Value;
+            GoogleOptions.ClientSecret = "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"; // builder.Configuration.GetSection("Authentication:Google:client_secret").Value;
         });
+
 
 builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
     {
-        policy.WithOrigins().AllowAnyMethod().AllowAnyHeader();
+        policy.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
     }
     ));
 
