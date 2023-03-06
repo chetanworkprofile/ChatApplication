@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using StudentManagementSystemAPI.Models;
-using StudentManagementSystemAPI.Services;
+using ChatApplication.Models;
+using ChatApplication.Services;
 
 
-namespace StudentManagementSystemAPI.Controllers
+namespace ChatApplication.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
