@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,11 +60,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
     {
-        policy.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+        policy.WithOrigins("*").AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
     }
     ));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 /*builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
