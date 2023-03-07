@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using ChatApplication;
+using Google.Apis.Auth;
 
 namespace ChatApplication.Controllers
 {
@@ -197,7 +198,7 @@ namespace ChatApplication.Controllers
         }*/
 
         [HttpPost, Authorize]
-        [Route("change-password")]
+        [Route("/api/v1/change-password")]
         public ActionResult<User> ChangePasswod(ChangePassModel r)
         {
             _logger.LogInformation("reset password attempt");
@@ -225,8 +226,27 @@ namespace ChatApplication.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("/api/v1/GoogleAuth")]
+        public async Task<IActionResult> GoogleAuth(string Token)
+        {
+            try
+            {
+                var GoogleUser = await GoogleJsonWebSignature.ValidateAsync(Token);
+                response =  authService.GoogleHelper(GoogleUser);
+                return Ok(response);
+            }
+            catch (Exception x)
+            {
+                response.StatusCode = 400;
+                response.Message = x.Message;
+                response.Data = x.Data;
+                return BadRequest(response);
+            }
+        }
 
-       /* [HttpGet]
+
+        /*[HttpGet]
         [Route("/login-google")]
         public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
         {
@@ -251,9 +271,9 @@ namespace ChatApplication.Controllers
             // Sign the user in using cookie authentication
 
             return LocalRedirect(returnUrl);
-        }
+        }*/
 
-        public async Task Login()
+        /*public async Task Login()
         {
             await HttpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new AuthenticationProperties()
             {

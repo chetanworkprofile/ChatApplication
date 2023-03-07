@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 //for sending mail
 using System.Net;
 using System.Net.Mail;
+using Google.Apis.Auth;
 
 namespace ChatApplication.Services
 {
@@ -300,6 +301,66 @@ namespace ChatApplication.Services
             }
         }
 
+        public Response GoogleHelper(GoogleJsonWebSignature.Payload user)
+        {
+            if(user.EmailVerified != true)
+            {
+                response.StatusCode = 400;
+                response.Message = "Email not verified";
+                response.Data = string.Empty;
+                return response;
+            }
+            string returntoken;
+            var users = DbContext.Users;
+            var userExists = users.Where( u => u.Email == user.Email).FirstOrDefault();
+            if (userExists == null)
+            {
+                User newUser = new User()
+                {
+                    Email= user.Email,
+                    FirstName = user.GivenName,
+                    LastName = user.FamilyName,
+                    UserId = new Guid(),
+                    PasswordHash = CreatePasswordHash("abc"),
+                    IsDeleted= false,
+                    CreatedAt = DateTime.Now,
+                    DateOfBirth = DateTime.Now,
+                    PathToProfilePic= null,
+                    UpdatedAt= DateTime.Now,
+                    Phone  = 9999999999
+                };
+                DbContext.Users.Add(newUser);
+                DbContext.SaveChanges();
+                var tokenUser = new TokenUser()
+                {
+                    Email = newUser.Email,
+                    FirstName = newUser.FirstName,
+                    /* LastName= inpUser.LastName,
+                     UserId = user.UserId*/
+                };
+
+                returntoken = CreateToken(tokenUser);
+            }
+            else
+            {
+                var tokenUser = new TokenUser()
+                {
+                    Email = user.Email,
+                    FirstName = user.GivenName,
+                    /* LastName= inpUser.LastName,
+                     UserId = user.UserId*/
+                };
+
+                returntoken = CreateToken(tokenUser);
+            }
+
+            response.StatusCode=200;
+            response.Message = "login successful";
+            response.Data = returntoken;
+
+            return response;
+        }
+
         public async Task<Response> ChangePassword(ChangePassModel r,string email)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
@@ -409,6 +470,7 @@ namespace ChatApplication.Services
                 return computedHash.SequenceEqual(passwordHash);
             }
         }
+
     }
 }
 
