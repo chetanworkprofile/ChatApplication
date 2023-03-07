@@ -111,10 +111,38 @@ namespace ChatApplication.Controllers
         [Route("forget-password")]
         public ActionResult<User> ForgetPasswod(ForgetPassModel f)
         {
-            _logger.LogInformation("verification attempt");
+            _logger.LogInformation("forget password attempt");
             try
             {
                 response = authService.ForgetPassword(f).Result;
+
+                if (response.StatusCode == 404)
+                {
+                    return BadRequest(response);
+                }
+                else if (response.StatusCode == 403)
+                {
+                    return BadRequest(response);
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return StatusCode(500, response);
+            }
+        }
+
+        [HttpPost, Authorize]
+        [Route("reset-password")]
+        public ActionResult<User> ResetPasswod(ResetPassModel r)
+        {
+            _logger.LogInformation("reset password attempt");
+            try
+            {
+                response = authService.ResetPassword(r).Result;
 
                 if (response.StatusCode == 404)
                 {

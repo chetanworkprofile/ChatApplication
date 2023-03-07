@@ -216,6 +216,66 @@ namespace ChatApplication.Services
             }
         }
 
+        public async Task<Response> ResetPassword(ResetPassModel r)
+        {
+            //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
+            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
+
+            if (r.Password != r.ConfirmPassword)
+            {
+                response.StatusCode = 400;
+                response.Message = "Password and confirm password do not match";
+                response.Data = string.Empty;
+                return response;
+            }
+
+            if (user == null)
+            {
+                response.StatusCode = 404;
+                response.Message = "User not found";
+                response.Data = string.Empty;
+                return response;
+            }
+            try
+            {
+                byte[] pass = CreatePasswordHash(r.Password);
+                user.PasswordHash = pass;
+
+                await DbContext.SaveChangesAsync();
+                var responseUser = new ResponseUser()
+                {
+                    UserId = user.UserId,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    DateOfBirth = user.DateOfBirth,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                };
+                /*var tokenUser = new TokenUser()
+                {
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    *//* LastName= inpUser.LastName,
+                     UserId = user.UserId*//*
+                };*/
+
+                //string returntoken = CreateToken(tokenUser);
+                response.StatusCode = 200;
+                response.Message = "Password reset successful";
+                response.Data = responseUser;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return response;
+            }
+        }
+
         internal string CreateToken(TokenUser user)
         {
             List<Claim> claims = new List<Claim>
