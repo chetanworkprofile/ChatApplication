@@ -17,7 +17,7 @@ namespace ChatApplication.Models
         public DateTime? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; }
 
-        public string? VerificationToken { get; set; }
+        public int? VerificationOTP { get; set; }
         public DateTime? VerifiedAt { get; set; }
 
     }

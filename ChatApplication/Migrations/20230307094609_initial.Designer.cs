@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatApplication.Migrations
 {
     [DbContext(typeof(ChatAppDbContext))]
-    [Migration("20230307073152_initial")]
+    [Migration("20230307094609_initial")]
     partial class initial
     {
         /// <inheritdoc />
@@ -65,8 +65,8 @@ namespace ChatApplication.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("VerificationToken")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("VerificationOTP")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("VerifiedAt")
                         .HasColumnType("datetime2");

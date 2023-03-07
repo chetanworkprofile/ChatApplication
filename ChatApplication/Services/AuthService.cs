@@ -9,6 +9,10 @@ using System.Text.Json;
 using ChatApplication.Data;
 using Microsoft.EntityFrameworkCore;
 
+//for sending mail
+using System.Net;
+using System.Net.Mail;
+
 namespace ChatApplication.Services
 {
     public class AuthService : IAuthService
@@ -131,10 +135,10 @@ namespace ChatApplication.Services
                 response.Data = string.Empty;
                 return response;
             }
-            if (v.token!= "eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTUxMiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJkYXdpbmRlckBleGFtcGxlLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJEYXdpbmRlciIsImV4cCI6MTY3ODI1NjU2N30.Z8UGf51PBe5Ua9Ox9bajkRB-nr1KA_tPdczX1v-ep6gy-0Gwuk4YcWynB8Il0ro2GnBUEBtVHqwV8HYm43AUew")//(user == null)
+            if (v.value != user.VerificationOTP )//(user == null)
             {
                 response.StatusCode = 400;
-                response.Message = "Invalid Token";
+                response.Message = "Invalid verification Value";
                 response.Data = string.Empty;
                 return response;
             }
@@ -156,18 +160,14 @@ namespace ChatApplication.Services
             return response;
         }
 
-        public async Task<Response> ForgetPassword(ForgetPassModel f)
+        public async Task<Response> ForgetPassword(string email)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
-            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == f.Email);
+            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            if(f.Password != f.ConfirmPassword)
-            {
-                response.StatusCode = 400;
-                response.Message = "Password and confirm password do not match";
-                response.Data = string.Empty;
-                return response;
-            }
+            Random random = new Random();
+            int otp = random.Next(100000, 999999);
+            user.VerificationOTP = otp;
 
             if (user == null)
             {
@@ -178,21 +178,9 @@ namespace ChatApplication.Services
             }
             try
             {
-                byte[] pass = CreatePasswordHash(f.Password);
-                user.PasswordHash = pass;
 
+                response =  SendEmail(email, otp);
                 await DbContext.SaveChangesAsync();
-                var responseUser = new ResponseUser()
-                {
-                    UserId = user.UserId,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    Phone = user.Phone,
-                    DateOfBirth = user.DateOfBirth,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt,
-                };
                 /*var tokenUser = new TokenUser()
                 {
                     Email = user.Email,
@@ -202,9 +190,6 @@ namespace ChatApplication.Services
                 };*/
 
                 //string returntoken = CreateToken(tokenUser);
-                response.StatusCode = 200;
-                response.Message = "Password reset successful";
-                response.Data = responseUser;
                 return response;
             }
             catch (Exception ex)
@@ -216,10 +201,49 @@ namespace ChatApplication.Services
             }
         }
 
-        public async Task<Response> ResetPassword(ResetPassModel r)
+        public Response SendEmail(string email,int value)
+        {
+            try
+            {
+                MailMessage message = new MailMessage();
+
+                // set the sender and recipient email addresses
+                message.From = new MailAddress("verification@chatapp.chicmic.co.in");
+                message.To.Add(new MailAddress(email));
+
+                // set the subject and body of the email
+                message.Subject = "Verify your account";
+                message.Body = "Please verify your reset password attempt. Your One Time Password for verification is " + value;             /*"Please click on the following link to verify your account: http://192.180.2.159:4040/api/v1/verify?email=" + email+"&value"+value;    //verificationCode;*/
+
+                // create a new SmtpClient object
+                SmtpClient client = new SmtpClient();
+
+                // set the SMTP server credentials and port
+                client.Credentials = new NetworkCredential("chetan.gupta@chicmic.co.in", "Chicmic@2022");
+                client.Host = "mail.chicmic.co.in";
+                client.Port = 587;
+                client.EnableSsl = true;
+
+                // send the email
+                client.Send(message);
+                response.StatusCode = 200;
+                response.Message = "Verification Email Sent";
+                response.Data = string.Empty;
+                return response;
+            }
+            catch(Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return response;
+            }
+        }
+
+        public async Task<Response> ResetPassword(ResetpassModel r,string email)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
-            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
+            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             if (r.Password != r.ConfirmPassword)
             {
@@ -264,6 +288,75 @@ namespace ChatApplication.Services
                 //string returntoken = CreateToken(tokenUser);
                 response.StatusCode = 200;
                 response.Message = "Password reset successful";
+                response.Data = responseUser;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return response;
+            }
+        }
+
+        public async Task<Response> ChangePassword(ChangePassModel r,string email)
+        {
+            //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
+            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            //var PasswordHash = CreatePasswordHash(r.oldPassword);
+
+            if (!VerifyPasswordHash(r.oldPassword, user.PasswordHash))
+            {
+                response.StatusCode = 400;
+                response.Message = "Invalid Old password";
+                response.Data = string.Empty;
+                return response;
+            }
+
+            if (r.Password != r.ConfirmPassword)
+            {
+                response.StatusCode = 400;
+                response.Message = "Password and confirm password do not match";
+                response.Data = string.Empty;
+                return response;
+            }
+
+            if (user == null)
+            {
+                response.StatusCode = 404;
+                response.Message = "User not found";
+                response.Data = string.Empty;
+                return response;
+            }
+            try
+            {
+                byte[] pass = CreatePasswordHash(r.Password);
+                user.PasswordHash = pass;
+
+                await DbContext.SaveChangesAsync();
+                var responseUser = new ResponseUser()
+                {
+                    UserId = user.UserId,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    DateOfBirth = user.DateOfBirth,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                };
+                /*var tokenUser = new TokenUser()
+                {
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    *//* LastName= inpUser.LastName,
+                     UserId = user.UserId*//*
+                };*/
+
+                //string returntoken = CreateToken(tokenUser);
+                response.StatusCode = 200;
+                response.Message = "Password change successful";
                 response.Data = responseUser;
                 return response;
             }

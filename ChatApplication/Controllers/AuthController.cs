@@ -53,7 +53,7 @@ namespace ChatApplication.Controllers
             }
         }
 
-        [HttpPost("UserLogin")]
+        [HttpPost("/api/v1/UserLogin")]
         public ActionResult<User> UserLogin(UserDTO request)
         {
             _logger.LogInformation("User Login attempt");
@@ -80,13 +80,14 @@ namespace ChatApplication.Controllers
             }
         }
 
-        [HttpPost("verify")]
-        public ActionResult<User> Verify(VerificationModel v)
+        [HttpPost]
+        [Route("/api/v1/forget-password")]
+        public ActionResult<User> ForgetPassword(string Email)
         {
-            _logger.LogInformation("verification attempt");
+            _logger.LogInformation("forget password attempt");
             try
             {
-                response = authService.Verify(v).Result;
+                response = authService.ForgetPassword(Email).Result;
 
                 if (response.StatusCode == 404)
                 {
@@ -107,9 +108,69 @@ namespace ChatApplication.Controllers
             }
         }
 
-        [HttpPost, Authorize]
+        [HttpPost("/api/v1/verify")]
+        public ActionResult<User> Verify(VerificationModel v)
+        {
+            _logger.LogInformation("verification attempt");
+            try
+            {
+                response = authService.Verify(v).Result;
+
+                if (response.StatusCode == 404)
+                {
+                    return BadRequest(response);
+                }
+                else if (response.StatusCode == 403)
+                {
+                    return BadRequest(response);
+                }
+                if(response.Message == "User Verified")
+                {
+                    return Ok(response);
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return StatusCode(500, response);
+            }
+        }
+
+        [HttpPost,Authorize]
+        [Route("/api/v1/reset-password")]
+        public ActionResult<User> ResetPassword(ResetpassModel r)
+        {
+            _logger.LogInformation("reset password attempt");
+            try
+            {
+                string email = User.FindFirstValue(ClaimTypes.Email);
+                response = authService.ResetPassword(r,email).Result;
+
+                if (response.StatusCode == 404)
+                {
+                    return BadRequest(response);
+                }
+                else if (response.StatusCode == 403)
+                {
+                    return BadRequest(response);
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return StatusCode(500, response);
+            }
+        }
+
+        /*[HttpPost, Authorize]
         [Route("forget-password")]
-        public ActionResult<User> ForgetPasswod(ForgetPassModel f)
+        public ActionResult<User> ForgetPassword(ForgetPassModel f)
         {
             _logger.LogInformation("forget password attempt");
             try
@@ -133,16 +194,17 @@ namespace ChatApplication.Controllers
                 response.Data = ex.Data;
                 return StatusCode(500, response);
             }
-        }
+        }*/
 
         [HttpPost, Authorize]
-        [Route("reset-password")]
-        public ActionResult<User> ResetPasswod(ResetPassModel r)
+        [Route("change-password")]
+        public ActionResult<User> ChangePasswod(ChangePassModel r)
         {
             _logger.LogInformation("reset password attempt");
             try
             {
-                response = authService.ResetPassword(r).Result;
+                string email = User.FindFirstValue(ClaimTypes.Email);
+                response = authService.ChangePassword(r,email).Result;
 
                 if (response.StatusCode == 404)
                 {
@@ -164,9 +226,8 @@ namespace ChatApplication.Controllers
         }
 
 
-        /*[HttpGet]
+       /* [HttpGet]
         [Route("/login-google")]
-        *//*[AllowAnonymous]*//*
         public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
         {
             if (remoteError != null)
@@ -177,7 +238,7 @@ namespace ChatApplication.Controllers
                 response.Data = string.Empty;
                 return StatusCode(500, response);
             }
-            
+
             var info = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
 
             var claims = info.Principal.Claims.ToList();
@@ -191,11 +252,11 @@ namespace ChatApplication.Controllers
 
             return LocalRedirect(returnUrl);
         }
-*/
-        /*public async Task Login()
+
+        public async Task Login()
         {
-            await HttpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new AuthenticationProperties() 
-            { 
+            await HttpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new AuthenticationProperties()
+            {
                 RedirectUri = Url.Action("GoogleResponse")
             });
         }
