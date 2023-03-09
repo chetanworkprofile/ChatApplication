@@ -144,7 +144,7 @@ namespace ChatApplication.Services
                 return response;
             }
             
-            //user.VerifiedAt= DateTime.UtcNow;
+            user.VerifiedAt= DateTime.UtcNow;
             await DbContext.SaveChangesAsync();
             var tokenUser = new TokenUser()
             {
@@ -276,7 +276,7 @@ namespace ChatApplication.Services
                     Phone = user.Phone,
                     DateOfBirth = user.DateOfBirth,
                     CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt,
+                    UpdatedAt = DateTime.Now,
                 };
                 /*var tokenUser = new TokenUser()
                 {
@@ -405,7 +405,7 @@ namespace ChatApplication.Services
                     Phone = user.Phone,
                     DateOfBirth = user.DateOfBirth,
                     CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt,
+                    UpdatedAt = DateTime.Now,
                 };
                 /*var tokenUser = new TokenUser()
                 {

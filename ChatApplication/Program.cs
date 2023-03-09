@@ -66,6 +66,7 @@ builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUploadPicService, UploadPicService>();
 /*builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
