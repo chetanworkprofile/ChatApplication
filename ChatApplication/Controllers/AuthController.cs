@@ -19,6 +19,8 @@ namespace ChatApplication.Controllers
     {
         IAuthService authService;
         Response response = new Response();
+        ResponseWithoutData response2 = new ResponseWithoutData();
+        object result = new object();
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)
@@ -28,120 +30,125 @@ namespace ChatApplication.Controllers
         }
 
         [HttpPost]
-        [Route("/api/v1/RegisterUser")]
+        [Route("/api/v1/user/register")]
         public IActionResult RegisterUser([FromBody] InputUser inpUser)
         {
-            /*if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                response.StatusCode = 400;
-                response.Message = "Invalid input";
-                response.Data = ValidationProblem(ModelState);
-                return BadRequest(response);
-            }*/
+                response2.StatusCode = 400;
+                response2.Message = "Invalid Input/One or more fields are invalid";
+                response2.Success = false;
+                return BadRequest(response2);
+            }
             try
             {
                 _logger.LogInformation("Register User method started");
-                Response response = authService.CreateUser(inpUser).Result;
-                return Ok(response);
+                result = authService.CreateUser(inpUser).Result;
+                return Ok(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data= ex.Data;
-                return StatusCode(500, response);
+                //ResponseWithoutData response = new ResponseWithoutData();
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                response2.Success = false;
+                return StatusCode(500, response2);
             }
         }
 
-        [HttpPost("/api/v1/UserLogin")]
+        [HttpPost("/api/v1/user/login")]
         public ActionResult<User> UserLogin(UserDTO request)
         {
             _logger.LogInformation("User Login attempt");
             try
             {
-                response = authService.Login(request);
+                result = authService.Login(request);
+
+               /* response2 = (ResponseWithoutData)result;
 
                 if (response.StatusCode == 404)
                 {
-                    return BadRequest(response);
+                    return BadRequest(response2);
                 }
                 else if (response.StatusCode == 403)
                 {
-                    return BadRequest(response);
-                }
-                return Ok(response);
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                response.StatusCode=500;
-                response.Message = ex.Message;
-                response.Data= ex.Data;
-                return StatusCode(500, response);
+                response2.StatusCode=500;
+                response2.Message = ex.Message;
+                response2.Success = false;
+                return StatusCode(500, response2);
             }
         }
 
         [HttpPost]
-        [Route("/api/v1/forget-password")]
+        [Route("/api/v1/forgetPassword")]
         public ActionResult<User> ForgetPassword(string Email)
         {
             _logger.LogInformation("forget password attempt");
             try
             {
-                response = authService.ForgetPassword(Email).Result;
+                result = authService.ForgetPassword(Email).Result;
 
-                if (response.StatusCode == 404)
+                /*response2 = (ResponseWithoutData)result;
+
+                if (response2.StatusCode == 404)
                 {
-                    return BadRequest(response);
+                    return BadRequest(response2);
                 }
-                else if (response.StatusCode == 403)
+                else if (response2.StatusCode == 403)
                 {
-                    return BadRequest(response);
-                }
-                return Ok(response);
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data = ex.Data;
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                response2.Success = false;
                 return StatusCode(500, response);
             }
         }
 
-        [HttpPost("/api/v1/verify")]
-        public ActionResult<User> Verify(VerificationModel v)
+        [HttpPost, Authorize(Roles = "resetpassword")]
+        [Route("/api/v1/resetPassword")]
+        public ActionResult<User> Verify(ResetpassModel r)
         {
             _logger.LogInformation("verification attempt");
             try
             {
-                response = authService.Verify(v).Result;
+                string? email = User.FindFirstValue(ClaimTypes.Email);
+                result = authService.Verify(r,email).Result;
 
-                if (response.StatusCode == 404)
+                /*response2 = (ResponseWithoutData)result;
+
+                if (response2.StatusCode == 404)
                 {
-                    return BadRequest(response);
+                    return NotFound(response2);
                 }
-                else if (response.StatusCode == 403)
+                else if (response2.StatusCode == 400)
                 {
-                    return BadRequest(response);
-                }
-                if(response.Message == "User Verified")
-                {
-                    return Ok(response);
-                }
-                return Ok(response);
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data = ex.Data;
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                response2.Success = false;
                 return StatusCode(500, response);
             }
         }
 
-        [HttpPost,Authorize]
-        [Route("/api/v1/reset-password")]
+        /*[HttpPost,Authorize]
+        [Route("/api/v1/resetPassword")]
         public ActionResult<User> ResetPassword(ResetpassModel r)
         {
             _logger.LogInformation("reset password attempt");
@@ -167,7 +174,7 @@ namespace ChatApplication.Controllers
                 response.Data = ex.Data;
                 return StatusCode(500, response);
             }
-        }
+        }*/
 
         /*[HttpPost, Authorize]
         [Route("forget-password")]
@@ -197,51 +204,56 @@ namespace ChatApplication.Controllers
             }
         }*/
 
-        [HttpPost, Authorize]
-        [Route("/api/v1/change-password")]
+        [HttpPost, Authorize(Roles ="login")]
+        [Route("/api/v1/changePassword")]
         public ActionResult<User> ChangePasswod(ChangePassModel r)
         {
             _logger.LogInformation("reset password attempt");
             try
             {
-                string email = User.FindFirstValue(ClaimTypes.Email);
-                response = authService.ChangePassword(r,email).Result;
+                /*var user = HttpContext.User;
+                string email = user.FindFirst(ClaimTypes.Email)?.Value;*/
+                string? email = User.FindFirstValue(ClaimTypes.Email);
+                result = authService.ChangePassword(r,email).Result;
 
-                if (response.StatusCode == 404)
+                /*response2 = (ResponseWithoutData)result;
+
+                if (response2.StatusCode == 404)
                 {
-                    return BadRequest(response);
+                    return BadRequest(response2);
                 }
-                else if (response.StatusCode == 403)
+                else if (response2.StatusCode == 403)
                 {
-                    return BadRequest(response);
-                }
-                return Ok(response);
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data = ex.Data;
-                return StatusCode(500, response);
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                response2.Success = false;
+                return StatusCode(500, response2);
             }
         }
 
         [HttpPost]
-        [Route("/api/v1/GoogleAuth")]
+        [Route("/api/v1/googleAuth")]
         public async Task<IActionResult> GoogleAuth(string Token)
         {
             try
             {
                 var GoogleUser = await GoogleJsonWebSignature.ValidateAsync(Token);
-                response =  authService.GoogleHelper(GoogleUser);
-                return Ok(response);
+                result =  authService.GoogleHelper(GoogleUser);
+                return Ok(result);
             }
-            catch (Exception x)
+            catch (Exception ex)
             {
-                response.StatusCode = 400;
-                response.Message = x.Message;
-                response.Data = x.Data;
-                return BadRequest(response);
+                response2.StatusCode = 400;
+                response2.Message = ex.Message;
+                response2.Success = false;
+                Console.WriteLine(ex);
+                return BadRequest(response2);
             }
         }
 

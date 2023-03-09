@@ -14,29 +14,36 @@ namespace ChatApplication.Controllers
     {
         UploadPicService uploadPicServiceInstance;
         private readonly ILogger<UploadFileController> _logger;
+        object result = new object();
+        ResponseWithoutData response2 = new ResponseWithoutData();
+        Response response = new Response();
         public UploadFileController(ILogger<UploadFileController> logger, IConfiguration configuration, ChatAppDbContext dbContext)
         {
             uploadPicServiceInstance = new UploadPicService(configuration,dbContext);
             _logger = logger;
         }
 
-        [HttpPost, DisableRequestSizeLimit, Authorize]
-        [Route("/api/v1/UploadFiles")]
+        [HttpPost, DisableRequestSizeLimit, Authorize(Roles ="login")]
+        [Route("/api/v1/uploadFiles")]
         public async Task<IActionResult> PicUploadAsync(IFormFile file, bool IsProfilePic = false)
         {
             try
             {
                 _logger.LogInformation("Pic Upload method started");
                 string email = User.FindFirstValue(ClaimTypes.Email);
-                Response response = await uploadPicServiceInstance.PicUploadAsync(file,IsProfilePic,email);
-                if (response.StatusCode == 200)
+                result = await uploadPicServiceInstance.PicUploadAsync(file,IsProfilePic,email);
+
+                /*response2 = (ResponseWithoutData)result;
+
+                if (response2.StatusCode != 200)
                 {
-                    return Ok(response);
+                    return Ok(result);
                 }
                 else
                 {
-                    return BadRequest(response);
-                }
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
             }
             catch (Exception ex)
             {

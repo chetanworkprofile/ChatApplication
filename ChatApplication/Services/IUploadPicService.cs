@@ -4,6 +4,6 @@ namespace ChatApplication.Services
 {
     public interface IUploadPicService
     {
-        public Task<Response> PicUploadAsync(IFormFile file, bool IsProfilePic, string Email);
+        public Task<object> PicUploadAsync(IFormFile file, bool IsProfilePic, string Email);
     }
 }

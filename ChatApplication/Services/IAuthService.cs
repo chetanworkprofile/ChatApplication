@@ -6,13 +6,12 @@ namespace ChatApplication.Services
 {
     public interface IAuthService
     {
-        public Task<Response> CreateUser(InputUser inpUser);
-        public Response Login(UserDTO request);
-        public Task<Response> Verify(VerificationModel v);
-        public Task<Response> ForgetPassword(string email);
-        public Task<Response> ChangePassword(ChangePassModel r,string email);
-        public Task<Response> ResetPassword(ResetpassModel r,string email);
-        public Response GoogleHelper(GoogleJsonWebSignature.Payload user);
+        public Task<object> CreateUser(InputUser inpUser);
+        public Object Login(UserDTO request);
+        public Task<Object> ForgetPassword(string email);
+        public Task<Object> Verify(ResetpassModel r, string email);
+        public Task<object> ChangePassword(ChangePassModel r,string email);
+        public Object GoogleHelper(GoogleJsonWebSignature.Payload user);
 
     }
 }

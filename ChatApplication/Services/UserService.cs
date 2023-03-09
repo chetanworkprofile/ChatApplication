@@ -7,6 +7,7 @@ namespace ChatApplication.Services
     public class UserService: IUserService
     {
         Response response = new Response();
+        ResponseWithoutData response2 = new ResponseWithoutData();
         //TokenUser tokenUser = new TokenUser();
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
@@ -17,7 +18,7 @@ namespace ChatApplication.Services
             this._configuration = configuration;
             DbContext = dbContext;
         }
-        public Response GetUsers(Guid? UserId, string? FirstName, string? LastName, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
+        public object GetUsers(Guid? UserId, string? FirstName, string? LastName, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
         {
             var users = DbContext.Users.ToList();
             users = users.Where(t => t.IsDeleted == false).ToList();
@@ -80,9 +81,18 @@ namespace ChatApplication.Services
                 res.Add(r);
             }
 
+            if (!res.Any())
+            {
+                response2.StatusCode = 200;
+                response2.Message = "No user found";
+                response2.Success= true;
+                return response2;
+            }
+
             response.StatusCode = 200;
             response.Message = "Users list fetched";
             response.Data = res;
+            response.Success = true;
             return response;
         }
     }

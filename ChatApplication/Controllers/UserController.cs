@@ -12,6 +12,7 @@ namespace ChatApplication.Controllers
     {
         IUserService userService;
         Response response = new Response();
+        object result = new object();
         private readonly ILogger<AuthController> _logger;
 
         public UserController(IConfiguration configuration, ChatAppDbContext dbContext, ILogger<AuthController> logger)
@@ -21,14 +22,14 @@ namespace ChatApplication.Controllers
         }
 
         [HttpGet]
-        [Route("/api/v1/GetUsers")]
+        [Route("/api/v1/users/get")]
         public IActionResult GetUsers(Guid? UserId = null, string? FirstName = null, string? LastName = null, string? Email = null, long Phone = -1, String OrderBy = "Id", int SortOrder = 1, int RecordsPerPage = 100, int PageNumber = 0)          // sort order   ===   e1 for ascending  -1 for descending
         {
             try
             {
                 _logger.LogInformation("Get Students method started");
-                Response response = userService.GetUsers(UserId, FirstName,LastName, Email, Phone, OrderBy, SortOrder, RecordsPerPage, PageNumber);
-                return Ok(response);
+                result = userService.GetUsers(UserId, FirstName,LastName, Email, Phone, OrderBy, SortOrder, RecordsPerPage, PageNumber);
+                return Ok(result);
             }
             catch (Exception ex)
             {

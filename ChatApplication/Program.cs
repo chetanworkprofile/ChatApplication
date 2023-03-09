@@ -85,9 +85,10 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles(new StaticFileOptions
 {
+    //File assests = new File()
     FileProvider = new PhysicalFileProvider(
            Path.Combine(builder.Environment.ContentRootPath, "Assets")),
-    RequestPath = "/StaticFiles"
+    RequestPath = "/staticFiles"
 });
 
 app.UseRouting();
