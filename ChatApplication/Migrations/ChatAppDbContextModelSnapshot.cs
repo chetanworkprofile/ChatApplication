@@ -62,6 +62,10 @@ namespace ChatApplication.Migrations
                     b.Property<long>("Phone")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 

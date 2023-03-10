@@ -21,12 +21,20 @@ namespace ChatApplication.Services
             DbContext = dbContext;
         }
 
-        public async Task<object> PicUploadAsync(IFormFile file,bool IsProfilePic,string Email)
+        public async Task<object> PicUploadAsync(IFormFile file,bool IsProfilePic,string Email,string token)
         {
-            User? user = new User();
+            User? user = user = await DbContext.Users.Where(u => u.Email == Email).FirstOrDefaultAsync();
             var folderName = Path.Combine("Assets","Images");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
- 
+
+            if (token != user.Token)
+            {
+                response2.StatusCode = 404;
+                response2.Message = "Invalid/expired token. Login First";
+                response2.Success = false;
+                return response2;
+            }
+
             if (file.Length > 0)
             {
                 var fileName = string.Concat(
@@ -41,19 +49,30 @@ namespace ChatApplication.Services
                 {
                     await file.CopyToAsync(stream);
                 }
-
+               
                 if (IsProfilePic == true)
                 {
-                    user = await DbContext.Users.Where(u => u.Email == Email).FirstOrDefaultAsync();
                     user.PathToProfilePic = Path.Combine(folderName, fileName);
                     await DbContext.SaveChangesAsync();
                 }
 
                 response.StatusCode= 200;
                 response.Message = "File Uploaded Successfully";
+                ResponseUser responseUser = new ResponseUser()
+                {
+                    UserId = user.UserId,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    DateOfBirth= user.DateOfBirth,
+                    CreatedAt= user.CreatedAt,
+                    Phone= user.Phone,
+                    PathToProfilePic= user.PathToProfilePic,
+                    UpdatedAt = user.UpdatedAt
+                };
                 FileResponseData data = new FileResponseData()
                 {
-                    User = user,
+                    User = responseUser,
                     PathToPic = Path.Combine(folderName, fileName),
                 };
                 response.Data = data;

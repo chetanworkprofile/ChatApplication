@@ -112,7 +112,7 @@ namespace ChatApplication.Controllers
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
                 response2.Success = false;
-                return StatusCode(500, response);
+                return StatusCode(500, response2);
             }
         }
 
@@ -211,10 +211,11 @@ namespace ChatApplication.Controllers
             _logger.LogInformation("reset password attempt");
             try
             {
+                string token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 /*var user = HttpContext.User;
                 string email = user.FindFirst(ClaimTypes.Email)?.Value;*/
                 string? email = User.FindFirstValue(ClaimTypes.Email);
-                result = authService.ChangePassword(r,email).Result;
+                result = authService.ChangePassword(r,email,token).Result;
 
                 /*response2 = (ResponseWithoutData)result;
 
@@ -257,6 +258,37 @@ namespace ChatApplication.Controllers
             }
         }
 
+        [HttpPost, Authorize(Roles = "login")]
+        [Route("/api/v1/user/logout")]
+        public ActionResult<User> Logout()
+        {
+            _logger.LogInformation("user logout attempt");
+            try
+            {
+                string? email = User.FindFirstValue(ClaimTypes.Email);
+                string token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                result = authService.Logout(email,token).Result;
+
+                /*response2 = (ResponseWithoutData)result;
+
+                if (response2.StatusCode == 404)
+                {
+                    return BadRequest(response2);
+                }
+                else if (response2.StatusCode == 403)
+                {
+                    return BadRequest(response2);
+                }*/
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                response2.Success = false;
+                return StatusCode(500, response2);
+            }
+        }
 
         /*[HttpGet]
         [Route("/login-google")]

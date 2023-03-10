@@ -16,6 +16,7 @@ namespace ChatApplication.Models
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; }
+        public string Token { get; set; } = string.Empty;
 
         public int? VerificationOTP { get; set; }
         public DateTime OtpUsableTill { get; set; }

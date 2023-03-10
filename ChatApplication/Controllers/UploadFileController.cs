@@ -30,8 +30,9 @@ namespace ChatApplication.Controllers
             try
             {
                 _logger.LogInformation("Pic Upload method started");
-                string email = User.FindFirstValue(ClaimTypes.Email);
-                result = await uploadPicServiceInstance.PicUploadAsync(file,IsProfilePic,email);
+                string? email = User.FindFirstValue(ClaimTypes.Email);
+                string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                result = await uploadPicServiceInstance.PicUploadAsync(file,IsProfilePic,email,token);
 
                 /*response2 = (ResponseWithoutData)result;
 

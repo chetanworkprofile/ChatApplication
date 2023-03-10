@@ -10,7 +10,7 @@ namespace ChatApplication.Models
         public long Phone { get; set; }
         //public byte[] PasswordHash { get; set; } = new byte[32];
         public DateTime DateOfBirth { get; set; }
-        //public string? PathToProfilePic { get; set; }
+        public string PathToProfilePic { get; set; } = string.Empty;
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatApplication.Migrations
 {
     [DbContext(typeof(ChatAppDbContext))]
-    [Migration("20230309111412_Initial")]
+    [Migration("20230310092555_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -64,6 +64,10 @@ namespace ChatApplication.Migrations
 
                     b.Property<long>("Phone")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");

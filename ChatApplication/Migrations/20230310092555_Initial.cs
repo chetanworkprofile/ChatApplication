@@ -26,6 +26,7 @@ namespace ChatApplication.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     VerificationOTP = table.Column<int>(type: "int", nullable: true),
                     OtpUsableTill = table.Column<DateTime>(type: "datetime2", nullable: false),
                     VerifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true)

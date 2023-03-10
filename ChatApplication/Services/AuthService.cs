@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 //for sending mail
 using System.Net;
 using System.Net.Mail;
+
 using Google.Apis.Auth;
 using Newtonsoft.Json.Linq;
 
@@ -47,7 +48,7 @@ namespace ChatApplication.Services
                 {
                     // The user is not enough
                     response2.StatusCode = 200;
-                    response2.Message = "Not allowed to register. User is underage.Must be atleast 12 years old";
+                    response2.Message = "Not allowed to register. User is underage. Must be atleast 12 years old";
                     response2.Success = false;
                     return response2;
                 }
@@ -67,17 +68,18 @@ namespace ChatApplication.Services
                     IsDeleted = false,
                     PathToProfilePic = null
                 };
-                var responseUser = new ResponseUser()
+                /*var responseUser = new ResponseUser()
                 {
                     UserId = user.UserId,
-                    FirstName= user.FirstName,
-                    LastName= user.LastName,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
                     Email = user.Email,
-                    Phone= user.Phone,
-                    DateOfBirth= user.DateOfBirth,
-                    CreatedAt= user.CreatedAt,
-                    UpdatedAt= user.UpdatedAt,
-                };
+                    Phone = user.Phone,
+                    DateOfBirth = user.DateOfBirth,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                    PathToProfilePic = user.PathToProfilePic
+                };*/
 
                 var tokenUser = new TokenUser()
                 {
@@ -89,6 +91,7 @@ namespace ChatApplication.Services
                 };
 
                 string token = CreateToken(tokenUser);
+                user.Token = token;
                 await DbContext.Users.AddAsync(user);
                 await DbContext.SaveChangesAsync();
 
@@ -103,7 +106,7 @@ namespace ChatApplication.Services
                     LastName = user.LastName,
                     Token  = token
                 };
-                response.Data = token;
+                response.Data = data;
                 response.Success = true;
 
                 return response;
@@ -147,6 +150,8 @@ namespace ChatApplication.Services
             tokenUser.FirstName = userExists.FirstName;
             tokenUser.Role = "login";
             string token = CreateToken(tokenUser);
+            userExists.Token = token;
+            DbContext.SaveChangesAsync();
             response.StatusCode = 200;
             response.Message = "Login Successful";
             ResponseDataObj data = new ResponseDataObj()
@@ -164,24 +169,26 @@ namespace ChatApplication.Services
 
         public async Task<Object> ForgetPassword(string email)
         {
-            //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
-            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            Random random = new Random();
-            int otp = random.Next(100000, 999999);
-            user.VerificationOTP = otp;
-            user.OtpUsableTill= DateTime.Now.AddHours(1);
-
-            if (user == null)
-            {
-                response2.StatusCode = 404;
-                response2.Message = "User not found";
-                response2.Success = false;
-                return response2;
-            }
             try
             {
-                ResponseWithoutData r = SendEmail(email, otp);
+                //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
+                var user = await DbContext.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
+                bool exists = DbContext.Users.Where(u => u.Email == email).Any();
+                Random random = new Random();
+                int otp = random.Next(100000, 999999);
+                user.VerificationOTP = otp;
+                user.OtpUsableTill= DateTime.Now.AddHours(1);
+                user.Token = string.Empty;
+
+                if (!exists || user==null)
+                {
+                    response2.StatusCode = 404;
+                    response2.Message = "User not found";
+                    response2.Success = false;
+                    return response2;
+                }
+           
+                response2 = SendEmail(email, otp);
                 await DbContext.SaveChangesAsync();
                 var tokenUser = new TokenUser()
                 {
@@ -190,10 +197,10 @@ namespace ChatApplication.Services
                     Role = "resetpassword"
                 };
                 string returntoken = CreateToken(tokenUser);
-                if (r.StatusCode == 200)
+                if (response2.StatusCode == 200)
                 {
                     response.StatusCode= 200;
-                    response.Message= r.Message;
+                    response.Message= response2.Message;
                     response.Success = true;
                     ResponseDataObj data = new ResponseDataObj()
                     {
@@ -206,12 +213,12 @@ namespace ChatApplication.Services
                     response.Data = data;
                     return response;
                 }
-                return r;
+                return response2;
             }
             catch (Exception ex)
             {
                 response2.StatusCode = 500;
-                response2.Message = ex.Message;
+                response2.Message = "Invalid Mail or "+ex.Message;
                 response2.Success = false;
                 return response2;
             }
@@ -257,10 +264,11 @@ namespace ChatApplication.Services
 
                 // set the sender and recipient email addresses
                 message.From = new MailAddress("verification@chatapp.chicmic.co.in");
+                message.Subject = "Mail Verification by ChatApplication. Verify your account";
                 message.To.Add(new MailAddress(email));
 
                 // set the subject and body of the email
-                message.Subject = "Verify your account";
+                //message.Subject = "Verify your account";
                 message.Body = "Please verify your reset password attempt. Your One Time Password for verification is " + value;             /*"Please click on the following link to verify your account: http://192.180.2.159:4040/api/v1/verify?email=" + email+"&value"+value;    //verificationCode;*/
 
                 // create a new SmtpClient object
@@ -308,22 +316,24 @@ namespace ChatApplication.Services
                 byte[] pass = CreatePasswordHash(password);
                 user.PasswordHash = pass;
 
+                tokenUser.Email = user.Email;
+                tokenUser.FirstName = user.FirstName;
+                tokenUser.Role = "login";
+                string token = CreateToken(tokenUser);
+                user.Token = token;
                 await DbContext.SaveChangesAsync();
-                var responseUser = new ResponseUser()
+                var responsedata = new ResponseDataObj()
                 {
                     UserId = user.UserId,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email,
-                    Phone = user.Phone,
-                    DateOfBirth = user.DateOfBirth,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = DateTime.Now,
+                    Token = token
                 };
                 
                 response.StatusCode = 200;
                 response.Message = "Password reset successful";
-                response.Data = responseUser;
+                response.Data = responsedata;
                 response.Success = true;
                 return response;
             }
@@ -357,16 +367,15 @@ namespace ChatApplication.Services
                     FirstName = user.GivenName,
                     LastName = user.FamilyName,
                     UserId = new Guid(),
-                    PasswordHash = CreatePasswordHash("abc"),
+                    PasswordHash = CreatePasswordHash("gsahgfas@#$2343hjdshadAAHSHG676@@dJHJSd"),
                     IsDeleted= false,
                     CreatedAt = DateTime.Now,
                     DateOfBirth = DateTime.Now,
                     PathToProfilePic= user.Picture,
                     UpdatedAt= DateTime.Now,
-                    Phone  = 0
+                    Phone  = 9999999999
                 };
-                DbContext.Users.Add(newUser);
-                DbContext.SaveChanges();
+                
                 var tokenUser = new TokenUser()
                 {
                     Email = newUser.Email,
@@ -377,6 +386,9 @@ namespace ChatApplication.Services
                 };
 
                 returntoken = CreateToken(tokenUser);
+                newUser.Token = returntoken;
+                DbContext.Users.Add(newUser);
+                DbContext.SaveChanges();
             }
             else
             {
@@ -389,6 +401,8 @@ namespace ChatApplication.Services
                 };
 
                 returntoken = CreateToken(tokenUser);
+                userExists.Token= returntoken;
+                DbContext.SaveChanges();
             }
 
             response.StatusCode=200;
@@ -406,12 +420,18 @@ namespace ChatApplication.Services
             return response;
         }
 
-        public async Task<object> ChangePassword(ChangePassModel r,string email)
+        public async Task<object> ChangePassword(ChangePassModel r,string email,string token)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
             var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
             //var PasswordHash = CreatePasswordHash(r.oldPassword);
-
+            if (token != user.Token)
+            {
+                response2.StatusCode = 404;
+                response2.Message = "Invalid/expired token. Login First";
+                response2.Success = false;
+                return response2;
+            }
             if (!VerifyPasswordHash(r.oldPassword, user.PasswordHash))
             {
                 response2.StatusCode = 400;
@@ -433,17 +453,19 @@ namespace ChatApplication.Services
                 byte[] pass = CreatePasswordHash(r.Password);
                 user.PasswordHash = pass;
 
+                tokenUser.Email = user.Email;
+                tokenUser.FirstName = user.FirstName;
+                tokenUser.Role = "login";
+                /*string token = CreateToken(tokenUser);
+                user.Token = token;*/
                 await DbContext.SaveChangesAsync();
-                var responseUser = new ResponseUser()
+                var responsedata = new ResponseDataObj()
                 {
                     UserId = user.UserId,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email,
-                    Phone = user.Phone,
-                    DateOfBirth = user.DateOfBirth,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = DateTime.Now,
+                    Token = user.Token
                 };
                 /*var tokenUser = new TokenUser()
                 {
@@ -456,7 +478,7 @@ namespace ChatApplication.Services
                 //string returntoken = CreateToken(tokenUser);
                 response.StatusCode = 200;
                 response.Message = "Password change successful";
-                response.Data = responseUser;
+                response.Data = responsedata;
                 response.Success = true;
                 return response;
             }
@@ -470,7 +492,62 @@ namespace ChatApplication.Services
             }
         }
 
-        internal string CreateToken(TokenUser user)
+        public async Task<object> Logout(string email,string token)
+        {
+            var user = await DbContext.Users.Where(u=>u.Email==email).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                response2.StatusCode = 404;
+                response2.Message = "User not found/Invalid token";
+                response2.Success = false;
+                return response2;
+            }
+            if(token!=user.Token)
+            {
+                response2.StatusCode = 404;
+                response2.Message = "Invalid/expired token. Login First";
+                response2.Success = false;
+                return response2;
+            }
+            try
+            {
+                user.Token = string.Empty;
+                await DbContext.SaveChangesAsync();
+                var responsedata = new ResponseDataObj()
+                {
+                    UserId = user.UserId,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Token = token
+                };
+                /*var tokenUser = new TokenUser()
+                {
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    *//* LastName= inpUser.LastName,
+                     UserId = user.UserId*//*
+                };*/
+
+                //string returntoken = CreateToken(tokenUser);
+                response.StatusCode = 200;
+                response.Message = "User Logout Successfully";
+                response.Data = responsedata;
+                response.Success = true;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response2.StatusCode = 500;
+                response2.Message = ex.Message;
+                //response.Data = ex.Data;
+                response2.Success = false;
+                return response2;
+            }
+        }
+
+        public string CreateToken(TokenUser user)
         {
             List<Claim> claims = new List<Claim>
             {
@@ -502,7 +579,7 @@ namespace ChatApplication.Services
             }
             return passwordHash;
         }
-        private bool VerifyPasswordHash(string password, byte[] passwordHash)
+        public bool VerifyPasswordHash(string password, byte[] passwordHash)
         {
             byte[] salt = Encoding.ASCII.GetBytes(_configuration.GetSection("AppSettings:Password_Salt").Value!);
             using (var hmac = new HMACSHA512(salt))
