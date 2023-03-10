@@ -15,6 +15,7 @@ using System.Net.Mail;
 
 using Google.Apis.Auth;
 using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 
 namespace ChatApplication.Services
 {
@@ -23,6 +24,7 @@ namespace ChatApplication.Services
         Response response = new Response();
         ResponseWithoutData response2 = new ResponseWithoutData();
         TokenUser tokenUser = new TokenUser();
+        object result = new object();
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
         
@@ -49,6 +51,37 @@ namespace ChatApplication.Services
                     // The user is not enough
                     response2.StatusCode = 200;
                     response2.Message = "Not allowed to register. User is underage. Must be atleast 12 years old";
+                    response2.Success = false;
+                    return response2;
+                }
+                else if (age > 150)
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Not allowed to register. User is overage.Must be atmost 150 years old";
+                    response2.Success = false;
+                    return response2;
+                }
+                string regexPatternEmail = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
+                if (!Regex.IsMatch(inpUser.Email, regexPatternEmail))
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Please Enter Valid Email";
+                    response2.Success = false;
+                    return response2;
+                }
+                string regexPatternPassword = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$";
+                if (!Regex.IsMatch(inpUser.Password, regexPatternPassword))
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Please Enter Valid Password. Must contain atleast one uppercase letter, one lowercase letter, one number and one special chararcter and must be atleast 8 characters long";
+                    response2.Success = false;
+                    return response2;
+                }
+                string regexPatternPhone = "^[6-9]\\d{9}$";
+                if (!Regex.IsMatch(inpUser.Phone.ToString(), regexPatternPhone))
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Please Enter Valid PhoneNo";
                     response2.Success = false;
                     return response2;
                 }
@@ -124,8 +157,8 @@ namespace ChatApplication.Services
         public Object Login(UserDTO request)
         {
             //int index = details.Teacher.FindIndex(t => t.Username == request.Username);
-            var userExists = DbContext.Users.Where(u => u.Email == request.Email).FirstOrDefault();
-            if (userExists == null)
+            var user = DbContext.Users.Where(u => u.Email == request.Email).FirstOrDefault();
+            if (user == null)
             {
                 response2.StatusCode = 404;
                 response2.Message = "User not found";
@@ -139,28 +172,28 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-            else if (!VerifyPasswordHash(request.Password, userExists.PasswordHash))
+            else if (!VerifyPasswordHash(request.Password, user.PasswordHash))
             {
                 response2.StatusCode = 403;
                 response2.Message = "Wrong password.";
                 response2.Success = false;
                 return response2;
             }
-            tokenUser.Email = userExists.Email;
-            tokenUser.FirstName = userExists.FirstName;
+            tokenUser.Email = user.Email;
+            tokenUser.FirstName = user.FirstName;
             tokenUser.Role = "login";
             string token = CreateToken(tokenUser);
-            userExists.Token = token;
+            user.Token = token;
             DbContext.SaveChangesAsync();
             response.StatusCode = 200;
             response.Message = "Login Successful";
             ResponseDataObj data = new ResponseDataObj()
             {
-                UserId = userExists.UserId,
-                Email = userExists.Email,
-                FirstName = userExists.FirstName,
-                LastName = userExists.LastName,
-                Token = token
+                UserId = user.UserId,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Token = user.Token,
             };
             response.Data = data;
             response.Success = true;
@@ -250,10 +283,10 @@ namespace ChatApplication.Services
                 return response2;
             }
             user.VerifiedAt = DateTime.UtcNow;
-            response = ResetPassword(r.Password, email).Result;
+            result = ResetPassword(r.Password, email).Result;
             user.OtpUsableTill = DateTime.Now;
             await DbContext.SaveChangesAsync();
-            return response;
+            return result;
         }
 
         internal ResponseWithoutData SendEmail(string email,int value)
@@ -299,7 +332,7 @@ namespace ChatApplication.Services
             }
         }
 
-        internal async Task<Response> ResetPassword(string password,string email)
+        internal async Task<object> ResetPassword(string password,string email)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
             var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -311,6 +344,14 @@ namespace ChatApplication.Services
                 response.Data = string.Empty;
                 return response;
             }*/
+            string regexPatternPassword = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$";
+            if (!Regex.IsMatch(password, regexPatternPassword))
+            {
+                response2.StatusCode = 400;
+                response2.Message = "Please Enter Valid Password. Must contain atleast one uppercase letter, one lowercase letter, one number and one special chararcter and must be atleast 8 characters long";
+                response2.Success = false;
+                return response2;
+            }
             try
             {
                 byte[] pass = CreatePasswordHash(password);
@@ -432,6 +473,14 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
+            string regexPatternPassword = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$";
+            if (!Regex.IsMatch(r.Password, regexPatternPassword))
+            {
+                response2.StatusCode = 400;
+                response2.Message = "Enter Valid Password. Must contain atleast one uppercase letter, one lowercase letter, one number and one special chararcter and must be atleast 8 characters long";
+                response2.Success = false;
+                return response2;
+            }
             if (!VerifyPasswordHash(r.oldPassword, user.PasswordHash))
             {
                 response2.StatusCode = 400;
@@ -531,11 +580,11 @@ namespace ChatApplication.Services
                 };*/
 
                 //string returntoken = CreateToken(tokenUser);
-                response.StatusCode = 200;
-                response.Message = "User Logout Successfully";
-                response.Data = responsedata;
-                response.Success = true;
-                return response;
+                response2.StatusCode = 200;
+                response2.Message = "User Logged out Successfully";
+                //response2.Data = responsedata;
+                response2.Success = true;
+                return response2;
             }
             catch (Exception ex)
             {

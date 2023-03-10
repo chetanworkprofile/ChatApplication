@@ -28,6 +28,7 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.ApiKey
     });
     options.OperationFilter<SecurityRequirementsOperationFilter>();
+    //ErrorEventHandler errorEventHandler;
 });
 
 builder.Services.AddDbContext<ChatAppDbContext>(options =>

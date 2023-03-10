@@ -233,7 +233,7 @@ namespace ChatApplication.Services
             if (user != null && user.IsDeleted == false)
             {
                 user.IsDeleted = true;
-                user.Token= null;
+                user.Token= string.Empty;
                 await DbContext.SaveChangesAsync();
 
                 response2.StatusCode = 200;
