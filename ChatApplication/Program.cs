@@ -37,7 +37,7 @@ builder.Services.AddDbContext<ChatAppDbContext>(options =>
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    //options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
         .AddJwtBearer(options =>
         {
