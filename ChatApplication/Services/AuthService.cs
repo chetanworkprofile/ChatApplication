@@ -184,7 +184,7 @@ namespace ChatApplication.Services
             tokenUser.Role = "login";
             string token = CreateToken(tokenUser);
             user.Token = token;
-            DbContext.SaveChangesAsync();
+            DbContext.SaveChanges();
             response.StatusCode = 200;
             response.Message = "Login Successful";
             ResponseDataObj data = new ResponseDataObj()

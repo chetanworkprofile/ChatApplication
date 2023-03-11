@@ -25,7 +25,7 @@ namespace ChatApplication.Controllers
 
         [HttpPost, DisableRequestSizeLimit, Authorize(Roles ="login")]
         [Route("/api/v1/uploadFiles")]
-        public async Task<IActionResult> PicUploadAsync(IFormFile file, bool IsProfilePic = false)
+        public async Task<IActionResult> PicUploadAsync(IFormFile? file = null, bool IsProfilePic = false)
         {
             try
             {

@@ -83,15 +83,20 @@ app.UseSwaggerUI();
 
 // Use HTTPS redirection
 app.UseHttpsRedirection();
-
-app.UseStaticFiles(new StaticFileOptions
+try
 {
-    //File assests = new File()
-    FileProvider = new PhysicalFileProvider(
-           Path.Combine(builder.Environment.ContentRootPath, "Assets")),
-    RequestPath = "/staticFiles"
-});
-
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        //File assests = new File()
+        FileProvider = new PhysicalFileProvider(
+               Path.Combine(builder.Environment.ContentRootPath, "Assets")),
+        RequestPath = "/staticFiles"
+    });
+}
+catch(Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
 app.UseRouting();
 
 app.UseCors("CorsPolicy");

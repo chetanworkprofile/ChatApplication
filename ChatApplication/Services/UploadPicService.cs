@@ -34,7 +34,13 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-
+            if (file == null)
+            {
+                response2.Message = "Please provide a file for successful upload";
+                response2.StatusCode = 400;
+                response2.Success = false;
+                return response2;
+            }
             if (file.Length > 0)
             {
                 var fileName = string.Concat(
