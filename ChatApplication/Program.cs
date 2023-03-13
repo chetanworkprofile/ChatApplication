@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using ChatApplication.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,7 @@ builder.Services.AddAuthentication(options =>
             GoogleOptions.ClientSecret = "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"; // builder.Configuration.GetSection("Authentication:Google:client_secret").Value;
         });
 
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
@@ -100,6 +102,7 @@ catch(Exception ex)
 app.UseRouting();
 
 app.UseCors("CorsPolicy");
+app.MapHub<ChatAppHub>("/hubs/chat");
 
 app.UseAuthentication();
 

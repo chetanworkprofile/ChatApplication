@@ -260,6 +260,19 @@ namespace ChatApplication.Services
     {
         // Key, Value eg: { {"abc@gmail.com", "unique_connection_id"}
         private static readonly Dictionary<string, string> Users = new Dictionary<string, string>();
+        Response response = new Response();
+        ResponseWithoutData response2 = new ResponseWithoutData();
+        //TokenUser tokenUser = new TokenUser();
+        object result = new object();
+        private readonly ChatAppDbContext DbContext;
+        private readonly IConfiguration _configuration;
+
+
+        public ChatService(IConfiguration configuration, ChatAppDbContext dbContext)
+        {
+            this._configuration = configuration;
+            DbContext = dbContext;
+        }
 
         public bool AddUserToList(string userToAdd,string connectionId)
         {
@@ -323,6 +336,23 @@ namespace ChatApplication.Services
                 return Users.OrderBy(x => x.Key).Select(x => x.Key).ToArray();
             }
         }
+
+        public async Task<Message> AddMessage(string sender,string reciever,string content)
+        {
+            Message message = new Message()
+            {
+                MessageId = Guid.NewGuid(),
+                SenderEmail= sender,
+                ReceiverEmail= reciever,
+                Content = content,
+                DateTime= DateTime.Now,
+                IsDeleted= false
+            };
+            await DbContext.Messages.AddAsync(message);
+            await DbContext.SaveChangesAsync();
+            return message;
+        }
+
     }
 }
 

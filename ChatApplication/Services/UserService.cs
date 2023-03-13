@@ -1,6 +1,7 @@
 ﻿using ChatApplication.Data;
 using ChatApplication.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace ChatApplication.Services
 {
@@ -19,11 +20,16 @@ namespace ChatApplication.Services
             DbContext = dbContext;
             authService = new AuthService(configuration, dbContext);
         }
-        public object GetUsers(string email,string token,Guid? UserId, string? FirstName, string? LastName, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
+        public object GetUsers(string email,string token,Guid? UserId, string? searchString, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
         {
             var userLoggedIn = DbContext.Users.Where(u => u.Email == email).FirstOrDefault();
-            var users = DbContext.Users.ToList();
-            users = users.Where(t => t.IsDeleted == false).ToList();
+            var userss = DbContext.Users.AsQueryable();
+            //userss = userss.Where(x => (x.UserId == UserId || UserId == null) && (x.IsDeleted == false) && (EF.Functions.Like(x.FirstName, "%" + searchString + "%") || EF.Functions.Like(x.LastName, "%" + searchString + "%") || searchString == null) &&
+               //(x.Email == Email || Email == null)).Select(x => x);
+
+           
+            userss = userss.Where(t => t.IsDeleted == false);
+            
             if (token != userLoggedIn.Token)
             {
                 response2.StatusCode = 404;
@@ -31,17 +37,13 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-            if (UserId != null) { users = users.Where(s => (s.UserId == UserId)).ToList(); }
-            if (FirstName != null) { users = users.Where(s => (s.FirstName == FirstName)).ToList(); }
-            if (FirstName != null) { users = users.Where(s => (s.FirstName == FirstName)).ToList(); }
-            if (Email != null) { users = users.Where(s => (s.Email == Email)).ToList(); }
-            if (Phone != -1) { users = users.Where(s => (s.Phone == Phone)).ToList(); }
-            /*if (subjectId != null)
-            {
-                List<SubjectTeacherMappingInput> subjectTeacherId = (List<SubjectTeacherMappingInput>)DbContext.SubjectTeachersMappings.Where(st => st.SubjectId == subjectId).Select(st => st);
-                //SubjectTeacherMappings temp = DbContext.SubjectTeachersMappings.Where(s => s.SubjectId.(subjectId));
-                student = (DbSet<Student>)student.Where(s => s.SubjectTeacherAllocated.));
-            }*/
+            if (UserId != null) { userss = userss.Where(s => (s.UserId == UserId)); }
+            if (searchString != null) { userss = userss.Where(s => EF.Functions.Like(s.FirstName, "%" + searchString + "%") || EF.Functions.Like(s.LastName, "%" + searchString + "%") || EF.Functions.Like(s.FirstName+" "+s.LastName, "%" + searchString + "%")); }
+            
+            //if (FirstName != null) { users = users.Where(s => (s.FirstName == FirstName)).ToList(); }
+            if (Email != null) { userss = userss.Where(s => (s.Email == Email)); }
+            if (Phone != -1) { userss = userss.Where(s => (s.Phone == Phone)); }
+            var users = userss.ToList();
 
 
             Func<User, Object> orderBy = s => s.UserId;

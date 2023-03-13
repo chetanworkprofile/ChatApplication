@@ -156,6 +156,14 @@ namespace ChatApplication.Services
 
         public Object Login(UserDTO request)
         {
+            string regexPatternEmail = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
+            if (!Regex.IsMatch(request.Email, regexPatternEmail))
+            {
+                response2.StatusCode = 400;
+                response2.Message = "Please Enter Valid Email";
+                response2.Success = false;
+                return response2;
+            }
             //int index = details.Teacher.FindIndex(t => t.Username == request.Username);
             var user = DbContext.Users.Where(u => u.Email == request.Email).FirstOrDefault();
             if (user == null)

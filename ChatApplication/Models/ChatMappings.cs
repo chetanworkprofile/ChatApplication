@@ -1,10 +1,11 @@
 ﻿namespace ChatApplication.Models
 {
-    public class ContactMappings
+    public class ChatMappings
     {
-        public Guid Id { get; set; }
+        public Guid ChatId { get; set; }
         public string FirstEmail { get; set; } = string.Empty;
         public string SecondEmail { get; set; } = string.Empty;
-
+        public DateTime DateTime { get; set; } = DateTime.Now;
+        public bool IsDeleted { get; set; }
     }
 }
