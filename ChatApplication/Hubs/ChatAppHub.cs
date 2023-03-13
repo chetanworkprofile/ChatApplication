@@ -1,4 +1,5 @@
-﻿using ChatApplication.Models;
+﻿using Azure;
+using ChatApplication.Models;
 using ChatApplication.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,7 @@ namespace ChatApplication.Hubs
                 _chatService.AddUserToList(email,Context.ConnectionId); 
                 await Clients.Caller.SendAsync("UserConnected");
                 await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
+                //return base.OnConnectedAsync();
             }
 
             public override async Task OnDisconnectedAsync(Exception exception)
@@ -38,19 +40,46 @@ namespace ChatApplication.Hubs
 
         public async Task SendMessage(InputMessage msg)
         {
+           Console.WriteLine("SendMessage Socket fxn called");
            string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
            var response = await _chatService.AddMessage(SenderMail, msg.ReceiverEmail,msg.Content);
            string ReceiverId =  _chatService.GetConnectionIdByUser(msg.ReceiverEmail);
-           OutputMessage res = new OutputMessage()
-           {
-               MessageId = response.MessageId,
-               Content= response.Content,
-               DateTime= response.DateTime,
-               ReceiverEmail = response.ReceiverEmail,
-               SenderEmail = SenderMail
-           };
-            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",res);
+            /*await Clients.Caller.SendAsync("hello");*/
+            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",response);
+            //handle if user is not online
         }
+
+        public async Task CreateChat(string ConnectToMail)
+        {
+            Console.WriteLine("createChat fxn called");
+            string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
+            var res =  await _chatService.AddChat(SenderMail, ConnectToMail);
+            string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
+            await Clients.Client(ReceiverId).SendAsync("ChatCreated", res);
+           /* string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
+            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", res);*/
+        }
+
+        public List<OutputChatMappings> GetChats()
+        {
+            Console.WriteLine("GetChats fxn called");
+            string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            var res = _chatService.GetChats(Mail);
+            string ReceiverId = _chatService.GetConnectionIdByUser(Mail);
+            Clients.Client(ReceiverId).SendAsync("RecievedChats", res);
+            return res;
+        }
+
+        public void GetChatMessages(string OtherMail, int pageNumber, int SkipLimit)
+        {
+            Console.WriteLine("GetChatMessages fxn called");
+            string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            var res = _chatService.GetChatMessages(Mail, OtherMail, pageNumber, SkipLimit);
+            string ReceiverId = _chatService.GetConnectionIdByUser(Mail);
+            Clients.Client(ReceiverId).SendAsync("RecievedChats", res);
+        }
+
+
         /*
             public async Task AddUserConnectionId(string name)
             {
@@ -102,5 +131,5 @@ namespace ChatApplication.Hubs
                 var stringCompare = string.CompareOrdinal(from, to) < 0;
                 return stringCompare ? $"{from}-{to}" : $"{to}-{from}";
             }*/
-        }
-}
+    }
+    }

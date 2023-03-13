@@ -1,6 +1,8 @@
 ﻿using ChatApplication.Data;
 using ChatApplication.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace ChatApplication.Services
 {
@@ -337,7 +339,7 @@ namespace ChatApplication.Services
             }
         }
 
-        public async Task<Message> AddMessage(string sender,string reciever,string content)
+        public async Task<OutputMessage> AddMessage(string sender,string reciever,string content)
         {
             Message message = new Message()
             {
@@ -348,10 +350,118 @@ namespace ChatApplication.Services
                 DateTime= DateTime.Now,
                 IsDeleted= false
             };
+            OutputMessage res = new OutputMessage()
+            {
+                MessageId = message.MessageId,
+                Content = message.Content,
+                DateTime = message.DateTime,
+                ReceiverEmail = message.ReceiverEmail,
+                SenderEmail = message.SenderEmail,
+            };
             await DbContext.Messages.AddAsync(message);
             await DbContext.SaveChangesAsync();
-            return message;
+            return res;
         }
+
+        public async Task<Response> AddChat(string FirstMail, string SecondMail)
+        {
+            var chatdb = DbContext.ChatMappings;
+            var chats = chatdb.Where(c => c.FirstEmail==FirstMail && c.SecondEmail==SecondMail).FirstOrDefault();
+            if(chats == null)
+            {
+                chats = chatdb.Where(c => c.FirstEmail == SecondMail && c.SecondEmail == FirstMail).FirstOrDefault();
+            }
+           
+            if(chats==null)
+            {
+                ChatMappings chatMap = new ChatMappings()
+                {
+                    ChatId = Guid.NewGuid(),
+                    FirstEmail = FirstMail,
+                    SecondEmail = SecondMail,
+                    DateTime = DateTime.Now,
+                    IsDeleted = false
+                };
+
+                OutputChatMappings output = new OutputChatMappings()
+                {
+                    ChatId = chatMap.ChatId,
+                    FirstEmail = chatMap.FirstEmail,
+                    SecondEmail = chatMap.SecondEmail,
+                    DateTime = chatMap.DateTime,
+                };
+                await DbContext.ChatMappings.AddAsync(chatMap);
+                await DbContext.SaveChangesAsync();
+                response.Data = output;
+            }
+            else
+            {
+                OutputChatMappings output = new OutputChatMappings()
+                {
+                    ChatId = chats.ChatId,
+                    FirstEmail = chats.FirstEmail,
+                    SecondEmail = chats.SecondEmail,
+                    DateTime = chats.DateTime,
+                };
+                response.Data = output;
+            }
+
+            response.StatusCode = 200;
+            response.Message = "Chat created/exists";
+            response.Success = true;
+            
+            return response;
+        }
+
+        public List<OutputChatMappings> GetChats(string email)
+        {
+            var chatMaps = DbContext.ChatMappings.ToList();
+            chatMaps = chatMaps.Where(s => (s.FirstEmail == email || s.SecondEmail == email)).ToList();
+            chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
+            List<OutputChatMappings> res = new List<OutputChatMappings>();
+
+            foreach(var cm in chatMaps)
+            {
+                OutputChatMappings output = new OutputChatMappings()
+                {
+                    ChatId = cm.ChatId,
+                    FirstEmail = cm.FirstEmail,
+                    SecondEmail = cm.SecondEmail,
+                    DateTime = cm.DateTime,
+                };
+                res.Add(output);
+            }
+
+            return res;
+        }
+
+        public List<OutputMessage> GetChatMessages(string email,string otherEmail,int pageNumber,int skipLimit)
+        {
+            var messages = DbContext.Messages.AsQueryable();
+            //chatMaps = chatMaps.Where(s => (s.FirstEmail == email || s.SecondEmail == email)).ToList();
+            messages = messages.Where(m => (m.SenderEmail== email && m.ReceiverEmail==otherEmail) || (m.SenderEmail == otherEmail && m.ReceiverEmail == email));
+
+            messages = messages.OrderBy(m => m.DateTime).Select(m => m);
+            messages = messages.Skip((pageNumber - 1) * skipLimit).Take(skipLimit);
+          
+            List<OutputMessage> res = new List<OutputMessage>();
+
+            foreach (var msg in messages)
+            {
+                OutputMessage output = new OutputMessage()
+                {
+                   MessageId= msg.MessageId,
+                   Content= msg.Content,
+                   DateTime= msg.DateTime,
+                   ReceiverEmail= msg.ReceiverEmail,
+                   SenderEmail = msg.SenderEmail
+                };
+                res.Add(output);
+            }
+
+            return res;
+        }
+
 
     }
 }
