@@ -52,6 +52,18 @@ builder.Services.AddAuthentication(options =>
                 ValidateAudience = false,
                 ClockSkew = TimeSpan.Zero
             };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["accessToken"];
+                    if (string.IsNullOrEmpty(accessToken) == false)
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         }).AddGoogle(GoogleOptions =>
         {
             GoogleOptions.ClientId = "336034687630-sghvipd2u0vi3q07ttfqrqskhq8qhq39.apps.googleusercontent.com"; //builder.Configuration.GetSection("Authentication:Google:client_id").Value;
@@ -59,6 +71,9 @@ builder.Services.AddAuthentication(options =>
         });
 
 builder.Services.AddSignalR();
+//builder.Services.AddSignalR(e => {
+//    e.MaximumReceiveMessageSize = 102400000;
+//});
 
 builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
@@ -71,6 +86,7 @@ builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 /*builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
@@ -87,6 +103,7 @@ app.UseSwaggerUI();
 // Use HTTPS redirection
 app.UseHttpsRedirection();
 
+
 try
 {
     app.UseStaticFiles(new StaticFileOptions
@@ -101,16 +118,22 @@ catch(Exception ex)
 {
     Console.WriteLine(ex.Message);
 }
-app.UseRouting();
+
 
 app.UseCors("CorsPolicy");
-app.MapHub<ChatAppHub>("/hubs/chat");
-
-
 app.UseAuthentication();
-
+app.UseRouting();
 // Use authentication and authorization
 app.UseAuthorization();
+
+
+/*app.UseEndpoints(endpoints =>
+{
+    app.MapControllers();
+    endpoints.MapHub<ChatAppHub>("/hubs/chat");
+});*/
+app.MapHub<ChatAppHub>("/chatHubs");
+
 // Map the controllers
 app.MapControllers();
 // Run the application
