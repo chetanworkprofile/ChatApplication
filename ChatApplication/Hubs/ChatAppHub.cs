@@ -70,13 +70,13 @@ namespace ChatApplication.Hubs
             return res;
         }
 
-        public void GetChatMessages(string OtherMail, int pageNumber, int SkipLimit)
+        public void GetChatMessages(string OtherMail, int pageNumber)
         {
             Console.WriteLine("GetChatMessages fxn called");
             string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
-            var res = _chatService.GetChatMessages(Mail, OtherMail, pageNumber, SkipLimit);
+            var res = _chatService.GetChatMessages(Mail, OtherMail, pageNumber, 30);
             string ReceiverId = _chatService.GetConnectionIdByUser(Mail);
-            Clients.Client(ReceiverId).SendAsync("RecievedChats", res);
+            Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
         }
 
 
