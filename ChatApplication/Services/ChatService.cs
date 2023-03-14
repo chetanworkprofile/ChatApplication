@@ -363,9 +363,17 @@ namespace ChatApplication.Services
             return res;
         }
 
-        public async Task<Response> AddChat(string FirstMail, string SecondMail)
+        public async Task<object> AddChat(string FirstMail, string SecondMail)
         {
             var chatdb = DbContext.ChatMappings;
+            var user2 = DbContext.Users.Where(s=>s.Email==SecondMail).FirstOrDefault();
+            if (user2 == null)
+            {
+                response2.StatusCode = 400;
+                response2.Message = "User you are trying to connect does not exist";
+                response2.Success = true;
+                return response2;
+            }
             var chats = chatdb.Where(c => c.FirstEmail==FirstMail && c.SecondEmail==SecondMail).FirstOrDefault();
             if(chats == null)
             {
@@ -422,11 +430,17 @@ namespace ChatApplication.Services
 
             foreach(var cm in chatMaps)
             {
+                var user1 = DbContext.Users.Where(s=>s.Email==cm.FirstEmail).FirstOrDefault();
+                var user2 = DbContext.Users.Where(s => s.Email == cm.SecondEmail).FirstOrDefault();
                 OutputChatMappings output = new OutputChatMappings()
                 {
                     ChatId = cm.ChatId,
                     FirstEmail = cm.FirstEmail,
+                    FirstName1 = user1.FirstName,
+                    LastName1 = user1.LastName,
                     SecondEmail = cm.SecondEmail,
+                    FirstName2 =  user2.FirstName,
+                    LastName2 = user2.LastName,
                     DateTime = cm.DateTime,
                 };
                 res.Add(output);

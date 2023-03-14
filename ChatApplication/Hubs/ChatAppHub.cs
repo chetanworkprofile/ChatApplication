@@ -18,31 +18,50 @@ namespace ChatApplication.Hubs
                 _chatService = chatService;
             }
 
-            public override async Task OnConnectedAsync()
+        public override async Task<Task> OnConnectedAsync()
+        {
+            try
             {
-                string? email = Context.User.FindFirstValue(ClaimTypes.Email);
+                Console.WriteLine("connected");
+                //string? email = Context.User.FindFirstValue(ClaimTypes.Email);
                 //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
-                _chatService.AddUserToList(email,Context.ConnectionId); 
+                //_chatService.AddUserToList(email,Context.ConnectionId); 
                 await Clients.Caller.SendAsync("UserConnected");
-                await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
-                //return base.OnConnectedAsync();
+                //await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
             }
-
-            public override async Task OnDisconnectedAsync(Exception exception)
+            catch (Exception ex)
             {
-                //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
-                var user = _chatService.GetUserByConnectionId(Context.ConnectionId);
-                _chatService.RemoveUserFromList(user);
-                //await DisplayOnlineUsers();
-
-                await base.OnDisconnectedAsync(exception);
+                Console.WriteLine(ex.Message);
             }
+            return base.OnConnectedAsync();
+        }
 
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
+            var user = _chatService.GetUserByConnectionId(Context.ConnectionId);
+            _chatService.RemoveUserFromList(user);
+            //await DisplayOnlineUsers();
+
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task AddUserConnectionId(string email)
+            {
+                _chatService.AddUserToList(email, Context.ConnectionId);
+                await DisplayOnlineUsers();
+            }
+            private async Task DisplayOnlineUsers()
+            {
+                var onlineUsers = _chatService.GetOnlineUsers();
+                await Clients.All.SendAsync("UpdateOnlineUsers", onlineUsers);
+            }
         public async Task SendMessage(InputMessage msg)
         {
            Console.WriteLine("SendMessage Socket fxn called");
-           string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
-           var response = await _chatService.AddMessage(SenderMail, msg.ReceiverEmail,msg.Content);
+            //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
+            string SenderMail = _chatService.GetUserByConnectionId(Context.ConnectionId);
+            var response = await _chatService.AddMessage(SenderMail, msg.ReceiverEmail,msg.Content);
            string ReceiverId =  _chatService.GetConnectionIdByUser(msg.ReceiverEmail);
             /*await Clients.Caller.SendAsync("hello");*/
             await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",response);
@@ -52,7 +71,8 @@ namespace ChatApplication.Hubs
         public async Task CreateChat(string ConnectToMail)
         {
             Console.WriteLine("createChat fxn called");
-            string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
+            //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
+            string SenderMail = _chatService.GetUserByConnectionId(Context.ConnectionId);
             var res =  await _chatService.AddChat(SenderMail, ConnectToMail);
             string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
             await Clients.Client(ReceiverId).SendAsync("ChatCreated", res);
@@ -63,7 +83,8 @@ namespace ChatApplication.Hubs
         public List<OutputChatMappings> GetChats()
         {
             Console.WriteLine("GetChats fxn called");
-            string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            string Mail = _chatService.GetUserByConnectionId(Context.ConnectionId);
             var res = _chatService.GetChats(Mail);
             string ReceiverId = _chatService.GetConnectionIdByUser(Mail);
             Clients.Client(ReceiverId).SendAsync("RecievedChats", res);
@@ -73,7 +94,8 @@ namespace ChatApplication.Hubs
         public void GetChatMessages(string OtherMail, int pageNumber)
         {
             Console.WriteLine("GetChatMessages fxn called");
-            string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
+            string Mail = _chatService.GetUserByConnectionId(Context.ConnectionId);
             var res = _chatService.GetChatMessages(Mail, OtherMail, pageNumber, 30);
             string ReceiverId = _chatService.GetConnectionIdByUser(Mail);
             Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);

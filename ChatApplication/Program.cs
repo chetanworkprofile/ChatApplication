@@ -63,7 +63,7 @@ builder.Services.AddSignalR();
 builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
     {
-        //policy.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+        policy.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
         policy.WithOrigins("http://127.0.0.1:5500").AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
     }
     ));
@@ -86,6 +86,7 @@ app.UseSwaggerUI();
 
 // Use HTTPS redirection
 app.UseHttpsRedirection();
+
 try
 {
     app.UseStaticFiles(new StaticFileOptions
@@ -104,6 +105,7 @@ app.UseRouting();
 
 app.UseCors("CorsPolicy");
 app.MapHub<ChatAppHub>("/hubs/chat");
+
 
 app.UseAuthentication();
 
