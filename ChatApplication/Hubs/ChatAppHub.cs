@@ -44,7 +44,7 @@ namespace ChatApplication.Hubs
                     //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
                     //_chatService.AddUserToList(email,Context.ConnectionId); 
                     Clients.Caller.SendAsync("UserConnected");
-                    DisplayOnlineUsers();
+                    //DisplayOnlineUsers();
                 //await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
                  }
                 catch (Exception ex)
@@ -59,14 +59,13 @@ namespace ChatApplication.Hubs
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
             var user = GetUserByConnectionId(Context.ConnectionId);
             RemoveUserFromList(user);
-            //await DisplayOnlineUsers();
-
+            await DisplayOnlineUsers();
             await base.OnDisconnectedAsync(exception);
         }
 
         public async Task AddUserConnectionId(string email)
         {
-            AddUserToList(email, Context.ConnectionId);
+            AddUserToList(email.ToLower(), Context.ConnectionId);
             await DisplayOnlineUsers();
         }
         private async Task DisplayOnlineUsers()
@@ -74,15 +73,26 @@ namespace ChatApplication.Hubs
             var onlineUsers = GetOnlineUsers();
             await Clients.All.SendAsync("UpdateOnlineUsers", onlineUsers);
         }
-        public async Task SendMessage(InputMessage msg)
+        public async Task<string> SendMessage(InputMessage msg)
         {
             Console.WriteLine("SendMessage Socket fxn called");
+            if (msg.ReceiverEmail == "" || msg.ReceiverEmail == null)
+            {
+                return "invalid mail";
+            }
             //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
             string SenderMail = GetUserByConnectionId(Context.ConnectionId);
             var response = AddMessage(SenderMail, msg.ReceiverEmail, msg.Content);
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
-            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", msg.Content);
-            await Clients.Caller.SendAsync("hello");
+            RecevierMessage sendMsg = new RecevierMessage()
+            {
+                SenderEmail= SenderMail,
+                Content= msg.Content
+            };
+            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",sendMsg);
+            await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
+            return "Message sent";
+            //await Clients.Caller.SendAsync("ReceivedMessage","helo sender");
             //handle if user is not online
         }
 
@@ -94,8 +104,9 @@ namespace ChatApplication.Hubs
             var res = await AddChat(SenderMail, ConnectToMail);
             string ReceiverId = GetConnectionIdByUser(ConnectToMail);
             await Clients.Client(ReceiverId).SendAsync("ChatCreated", res);
-          /*  string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
-            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", res);*/
+            await Clients.Caller.SendAsync("ChatCreated", res);
+            /*  string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
+              await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", res);*/
         }
 
         public List<OutputChatMappings> GetChats()
@@ -109,15 +120,16 @@ namespace ChatApplication.Hubs
             return res;
         }
 
-        public void GetChatMessages(string OtherMail, int pageNumber)
+        public List<OutputMessage> GetChatMessages(string OtherMail, int pageNumber)
         {
             Console.WriteLine("GetChatMessages fxn called");
             //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
             string Mail = GetUserByConnectionId(Context.ConnectionId);
-            var res = GetChatMessagesService(Mail, OtherMail, pageNumber, 30);
+            List<OutputMessage> res = GetChatMessagesService(Mail, OtherMail, pageNumber, 30);
             string ReceiverId = GetConnectionIdByUser(Mail);
             Clients.Caller.SendAsync("RecievedChatMessages", res);
-            Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
+            //Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
+            return res;
         }
 
 
@@ -239,29 +251,32 @@ namespace ChatApplication.Hubs
                     IsDeleted = false
                 };
 
-                OutputChatMappings output = new OutputChatMappings()
+                /*OutputChatMappings output = new OutputChatMappings()
                 {
                     ChatId = chatMap.ChatId,
                     FirstEmail = chatMap.FirstEmail,
                     SecondEmail = chatMap.SecondEmail,
                     DateTime = chatMap.DateTime,
-                };
+                };*/
                 await DbContext.ChatMappings.AddAsync(chatMap);
                 await DbContext.SaveChangesAsync();
-                response.Data = output;
+                chats = chatMap;
+               /* response.Data = output;*/
             }
-            else
+            var user1 = DbContext.Users.Where(s => s.Email == chats.FirstEmail).FirstOrDefault();
+            user2 = DbContext.Users.Where(s => s.Email == chats.SecondEmail).FirstOrDefault();
+            OutputChatMappings output = new OutputChatMappings()
             {
-                OutputChatMappings output = new OutputChatMappings()
-                {
-                    ChatId = chats.ChatId,
-                    FirstEmail = chats.FirstEmail,
-                    SecondEmail = chats.SecondEmail,
-                    DateTime = chats.DateTime,
-                };
-                response.Data = output;
-            }
-
+                ChatId = chats.ChatId,
+                FirstEmail = chats.FirstEmail,
+                FirstName1 = user1.FirstName,
+                LastName1 = user1.LastName,
+                SecondEmail = chats.SecondEmail,
+                FirstName2= user2.FirstName,
+                LastName2= user2.LastName,
+                DateTime = chats.DateTime,
+            };
+            response.Data = output;
             response.StatusCode = 200;
             response.Message = "Chat created/exists";
             response.Success = true;
@@ -272,8 +287,10 @@ namespace ChatApplication.Hubs
         public List<OutputChatMappings> GetChatsService(string email)
         {
             var chatMaps = DbContext.ChatMappings.ToList();
-            chatMaps = chatMaps.Where(s => (s.FirstEmail == email || s.SecondEmail == email)).ToList();
+            chatMaps = chatMaps.Where(s => (s.FirstEmail == email)).ToList();
+            var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
             chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
+            chatMaps2 = chatMaps2.OrderBy(m => m.DateTime).Select(m => m).ToList();
             List<OutputChatMappings> res = new List<OutputChatMappings>();
 
             foreach (var cm in chatMaps)
@@ -293,18 +310,36 @@ namespace ChatApplication.Hubs
                 };
                 res.Add(output);
             }
+            foreach (var cm in chatMaps2)
+            {
+                var user1 = DbContext.Users.Where(s => s.Email == cm.FirstEmail).FirstOrDefault();
+                var user2 = DbContext.Users.Where(s => s.Email == cm.SecondEmail).FirstOrDefault();
+                OutputChatMappings output = new OutputChatMappings()
+                {
+                    ChatId = cm.ChatId,
+                    FirstEmail = cm.SecondEmail ,
+                    FirstName1 = user2.FirstName,
+                    LastName1 = user2.LastName,
+                    SecondEmail = cm.FirstEmail,
+                    FirstName2 = user1.FirstName,
+                    LastName2 = user1.LastName,
+                    DateTime = cm.DateTime,
+                };
+                res.Add(output);
+            }
 
             return res;
         }
 
         public List<OutputMessage> GetChatMessagesService(string email, string otherEmail, int pageNumber, int skipLimit)
         {
-            var messages = DbContext.Messages.AsQueryable();
+            //var messages = DbContext.Messages.AsQueryable();
+            var messages = DbContext.Messages.ToList();
             //chatMaps = chatMaps.Where(s => (s.FirstEmail == email || s.SecondEmail == email)).ToList();
-            messages = messages.Where(m => (m.SenderEmail == email && m.ReceiverEmail == otherEmail) || (m.SenderEmail == otherEmail && m.ReceiverEmail == email));
+            messages = messages.Where(m => (m.SenderEmail == email && m.ReceiverEmail == otherEmail) || (m.SenderEmail == otherEmail && m.ReceiverEmail == email)).ToList();
 
-            messages = messages.OrderBy(m => m.DateTime).Select(m => m);
-            messages = messages.Skip((pageNumber - 1) * skipLimit).Take(skipLimit);
+            messages = messages.OrderByDescending(m => m.DateTime).Select(m => m).ToList();
+            messages = messages.Skip((pageNumber - 1) * skipLimit).Take(skipLimit).ToList();
 
             List<OutputMessage> res = new List<OutputMessage>();
 
@@ -320,7 +355,7 @@ namespace ChatApplication.Hubs
                 };
                 res.Add(output);
             }
-
+            res.Reverse();
             return res;
         }
 

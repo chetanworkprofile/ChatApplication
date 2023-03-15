@@ -106,12 +106,17 @@ app.UseHttpsRedirection();
 
 try
 {
+    string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
+    if (!Directory.Exists(path))
+    {
+        Directory.CreateDirectory(path);
+    }
     app.UseStaticFiles(new StaticFileOptions
     {
         //File assests = new File()
         FileProvider = new PhysicalFileProvider(
                Path.Combine(builder.Environment.ContentRootPath, "Assets")),
-        RequestPath = "/staticFiles"
+        RequestPath = "/Assets"
     });
 }
 catch(Exception ex)

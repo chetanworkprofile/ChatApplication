@@ -2,13 +2,10 @@
 using ChatApplication.Models;
 using ChatApplication.Services;
 using ChatApplication.Data;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
-using ChatApplication;
 using Google.Apis.Auth;
 
 namespace ChatApplication.Controllers
@@ -31,10 +28,10 @@ namespace ChatApplication.Controllers
 
         [HttpPost]
         [Route("/api/v1/user/register")]
-        public IActionResult RegisterUser([FromBody] InputUser inpUser)
+        public IActionResult RegisterUser([FromBody] InputUser inpUser)             //register user function uses authService to create a new user in db
         {
             if (!ModelState.IsValid)
-            {
+            {   //checks for validation of model
                 response2.StatusCode = 400;
                 response2.Message = "Invalid Input/One or more fields are invalid";
                 response2.Success = false;
@@ -64,17 +61,6 @@ namespace ChatApplication.Controllers
             try
             {
                 result = authService.Login(request);
-
-               /* response2 = (ResponseWithoutData)result;
-
-                if (response.StatusCode == 404)
-                {
-                    return BadRequest(response2);
-                }
-                else if (response.StatusCode == 403)
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -94,17 +80,6 @@ namespace ChatApplication.Controllers
             try
             {
                 result = authService.ForgetPassword(Email).Result;
-
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode == 404)
-                {
-                    return BadRequest(response2);
-                }
-                else if (response2.StatusCode == 403)
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -125,17 +100,6 @@ namespace ChatApplication.Controllers
             {
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 result = authService.Verify(r,email).Result;
-
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode == 404)
-                {
-                    return NotFound(response2);
-                }
-                else if (response2.StatusCode == 400)
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -146,63 +110,6 @@ namespace ChatApplication.Controllers
                 return StatusCode(500, response);
             }
         }
-
-        /*[HttpPost,Authorize]
-        [Route("/api/v1/resetPassword")]
-        public ActionResult<User> ResetPassword(ResetpassModel r)
-        {
-            _logger.LogInformation("reset password attempt");
-            try
-            {
-                string email = User.FindFirstValue(ClaimTypes.Email);
-                response = authService.ResetPassword(r,email).Result;
-
-                if (response.StatusCode == 404)
-                {
-                    return BadRequest(response);
-                }
-                else if (response.StatusCode == 403)
-                {
-                    return BadRequest(response);
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data = ex.Data;
-                return StatusCode(500, response);
-            }
-        }*/
-
-        /*[HttpPost, Authorize]
-        [Route("forget-password")]
-        public ActionResult<User> ForgetPassword(ForgetPassModel f)
-        {
-            _logger.LogInformation("forget password attempt");
-            try
-            {
-                response = authService.ForgetPassword(f).Result;
-
-                if (response.StatusCode == 404)
-                {
-                    return BadRequest(response);
-                }
-                else if (response.StatusCode == 403)
-                {
-                    return BadRequest(response);
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                response.StatusCode = 500;
-                response.Message = ex.Message;
-                response.Data = ex.Data;
-                return StatusCode(500, response);
-            }
-        }*/
 
         [HttpPost, Authorize(Roles ="login")]
         [Route("/api/v1/changePassword")]
@@ -216,17 +123,6 @@ namespace ChatApplication.Controllers
                 string email = user.FindFirst(ClaimTypes.Email)?.Value;*/
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 result = authService.ChangePassword(r,email,token).Result;
-
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode == 404)
-                {
-                    return BadRequest(response2);
-                }
-                else if (response2.StatusCode == 403)
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -289,6 +185,63 @@ namespace ChatApplication.Controllers
                 return StatusCode(500, response2);
             }
         }
+
+        /*[HttpPost,Authorize]
+      [Route("/api/v1/resetPassword")]
+      public ActionResult<User> ResetPassword(ResetpassModel r)
+      {
+          _logger.LogInformation("reset password attempt");
+          try
+          {
+              string email = User.FindFirstValue(ClaimTypes.Email);
+              response = authService.ResetPassword(r,email).Result;
+
+              if (response.StatusCode == 404)
+              {
+                  return BadRequest(response);
+              }
+              else if (response.StatusCode == 403)
+              {
+                  return BadRequest(response);
+              }
+              return Ok(response);
+          }
+          catch (Exception ex)
+          {
+              response.StatusCode = 500;
+              response.Message = ex.Message;
+              response.Data = ex.Data;
+              return StatusCode(500, response);
+          }
+      }*/
+
+        /*[HttpPost, Authorize]
+        [Route("forget-password")]
+        public ActionResult<User> ForgetPassword(ForgetPassModel f)
+        {
+            _logger.LogInformation("forget password attempt");
+            try
+            {
+                response = authService.ForgetPassword(f).Result;
+
+                if (response.StatusCode == 404)
+                {
+                    return BadRequest(response);
+                }
+                else if (response.StatusCode == 403)
+                {
+                    return BadRequest(response);
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = 500;
+                response.Message = ex.Message;
+                response.Data = ex.Data;
+                return StatusCode(500, response);
+            }
+        }*/
 
         /*[HttpGet]
         [Route("/login-google")]
