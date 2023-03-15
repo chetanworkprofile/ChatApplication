@@ -59,19 +59,39 @@ namespace ChatApplication.Hubs
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
             var user = GetUserByConnectionId(Context.ConnectionId);
             RemoveUserFromList(user);
-            await DisplayOnlineUsers();
+            await OnlineUsers();
             await base.OnDisconnectedAsync(exception);
         }
 
         public async Task AddUserConnectionId(string email)
         {
             AddUserToList(email.ToLower(), Context.ConnectionId);
-            await DisplayOnlineUsers();
+            await OnlineUsers();
         }
-        private async Task DisplayOnlineUsers()
+        /*private async Task DisplayOnlineUsers()
         {
             var onlineUsers = GetOnlineUsers();
             await Clients.All.SendAsync("UpdateOnlineUsers", onlineUsers);
+        }*/
+        private async Task OnlineUsers()
+        {
+            var onlineUsers = GetOnlineUsers();
+            string loggedInEmail = GetUserByConnectionId(Context.ConnectionId);
+            var getChats = GetChatsService(loggedInEmail);
+            List<ActiveUsers> activeList = new List<ActiveUsers>();
+            foreach(var user in getChats)
+            {
+                ActiveUsers a = new ActiveUsers()
+                {
+                    Email = user.SecondEmail,
+                    FirstName = user.FirstName2,
+                    LastName= user.LastName2,
+                };
+                if(onlineUsers.Contains(user.SecondEmail)) { a.IsActive = true; }
+                else { a.IsActive = false; }
+                activeList.Add(a);
+            }
+            await Clients.All.SendAsync("UpdateOnlineUsers", activeList);
         }
         public async Task<string> SendMessage(InputMessage msg)
         {
