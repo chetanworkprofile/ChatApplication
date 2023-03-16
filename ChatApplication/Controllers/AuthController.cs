@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using Google.Apis.Auth;
+using ChatApplication.Hubs;
 
 namespace ChatApplication.Controllers
 {
@@ -14,6 +15,7 @@ namespace ChatApplication.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
+        
         IAuthService authService;
         Response response = new Response();
         ResponseWithoutData response2 = new ResponseWithoutData();
@@ -164,17 +166,6 @@ namespace ChatApplication.Controllers
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 string token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 result = authService.Logout(email,token).Result;
-
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode == 404)
-                {
-                    return BadRequest(response2);
-                }
-                else if (response2.StatusCode == 403)
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -185,6 +176,9 @@ namespace ChatApplication.Controllers
                 return StatusCode(500, response2);
             }
         }
+
+
+
 
         /*[HttpPost,Authorize]
       [Route("/api/v1/resetPassword")]
@@ -223,16 +217,6 @@ namespace ChatApplication.Controllers
             try
             {
                 response = authService.ForgetPassword(f).Result;
-
-                if (response.StatusCode == 404)
-                {
-                    return BadRequest(response);
-                }
-                else if (response.StatusCode == 403)
-                {
-                    return BadRequest(response);
-                }
-                return Ok(response);
             }
             catch (Exception ex)
             {

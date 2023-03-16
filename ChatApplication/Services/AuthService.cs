@@ -16,6 +16,7 @@ using System.Net.Mail;
 using Google.Apis.Auth;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
+using ChatApplication.Hubs;
 
 namespace ChatApplication.Services
 {
@@ -27,12 +28,14 @@ namespace ChatApplication.Services
         object result = new object();
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
-        
+        ChatAppHub chatAppHub;
+
 
         public AuthService(IConfiguration configuration,ChatAppDbContext dbContext)
         {
             this._configuration = configuration;
             DbContext = dbContext;
+            chatAppHub = new ChatAppHub(dbContext);
         }
 
 
@@ -141,7 +144,8 @@ namespace ChatApplication.Services
                 };
                 response.Data = data;
                 response.Success = true;
-
+                chatAppHub.AddUserConnectionId(data.Email);
+                //chatAppHub.refesh();
                 return response;
             }
             else
@@ -205,6 +209,8 @@ namespace ChatApplication.Services
             };
             response.Data = data;
             response.Success = true;
+            chatAppHub.AddUserConnectionId(data.Email);
+            //chatAppHub.refesh();
             return response;
         }
 
@@ -590,6 +596,8 @@ namespace ChatApplication.Services
                 //string returntoken = CreateToken(tokenUser);
                 response2.StatusCode = 200;
                 response2.Message = "User Logged out Successfully";
+                chatAppHub.RemoveUserFromList(email);
+                //chatAppHub.refesh();
                 //response2.Data = responsedata;
                 response2.Success = true;
                 return response2;

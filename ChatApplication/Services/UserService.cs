@@ -24,10 +24,11 @@ namespace ChatApplication.Services
         {
             var userLoggedIn = DbContext.Users.Where(u => u.Email == email).FirstOrDefault();
             var userss = DbContext.Users.AsQueryable();
+            userss = userss.Where(u => u.Email != email);
             //userss = userss.Where(x => (x.UserId == UserId || UserId == null) && (x.IsDeleted == false) && (EF.Functions.Like(x.FirstName, "%" + searchString + "%") || EF.Functions.Like(x.LastName, "%" + searchString + "%") || searchString == null) &&
-               //(x.Email == Email || Email == null)).Select(x => x);
+            //(x.Email == Email || Email == null)).Select(x => x);
 
-           
+
             userss = userss.Where(t => t.IsDeleted == false);
             
             if (token != userLoggedIn.Token)

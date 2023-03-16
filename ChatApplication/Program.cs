@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(options =>
             {
                 OnMessageReceived = context =>
                 {
-                    var accessToken = context.Request.Query["accessToken"];
+                    var accessToken = context.Request.Query["access_token"];
                     if (string.IsNullOrEmpty(accessToken) == false)
                     {
                         context.Token = accessToken;
@@ -64,11 +64,11 @@ builder.Services.AddAuthentication(options =>
                     return Task.CompletedTask;
                 }
             };
-        }).AddGoogle(GoogleOptions =>
+        });/*.AddGoogle(GoogleOptions =>
         {
             GoogleOptions.ClientId = "336034687630-sghvipd2u0vi3q07ttfqrqskhq8qhq39.apps.googleusercontent.com"; //builder.Configuration.GetSection("Authentication:Google:client_id").Value;
             GoogleOptions.ClientSecret = "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"; // builder.Configuration.GetSection("Authentication:Google:client_secret").Value;
-        });
+        });*/
 
 builder.Services.AddSignalR();
 //builder.Services.AddSignalR(e => {
@@ -87,10 +87,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
 builder.Services.AddScoped<IChatService, ChatService>();
-/*builder.Services.AddScoped<ITeacherService, TeacherService>();
-builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddScoped<IUploadPicService, UploadPicService>();
-*/
+
 // Build the WebApplication instance
 var app = builder.Build();
 

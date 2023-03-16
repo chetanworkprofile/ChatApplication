@@ -1,16 +1,18 @@
 ﻿using ChatApplication.Data;
 using ChatApplication.Models;
 using ChatApplication.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 namespace ChatApplication.Hubs
 {
-        //[Authorize  (Roles = "login")]
-        public class ChatAppHub : Hub
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public class ChatAppHub : Hub
         {
 
         private static readonly Dictionary<string, string> Users = new Dictionary<string, string>();
@@ -44,6 +46,7 @@ namespace ChatApplication.Hubs
                     //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
                     //_chatService.AddUserToList(email,Context.ConnectionId); 
                     Clients.Caller.SendAsync("UserConnected");
+                    Clients.All.SendAsync("refresh");
                     //DisplayOnlineUsers();
                 //await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
                  }
@@ -59,39 +62,92 @@ namespace ChatApplication.Hubs
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
             var user = GetUserByConnectionId(Context.ConnectionId);
             RemoveUserFromList(user);
-            await OnlineUsers();
+            Clients.All.SendAsync("refresh");
+            //await OnlineUsers();
             await base.OnDisconnectedAsync(exception);
         }
-
+        public void refesh()
+        {
+            Clients.All.SendAsync("refresh");
+        }
         public async Task AddUserConnectionId(string email)
         {
             AddUserToList(email.ToLower(), Context.ConnectionId);
-            await OnlineUsers();
+            //await OnlineUsers();
         }
         /*private async Task DisplayOnlineUsers()
         {
             var onlineUsers = GetOnlineUsers();
             await Clients.All.SendAsync("UpdateOnlineUsers", onlineUsers);
         }*/
-        private async Task OnlineUsers()
+        public async Task<List<ActiveUsers>> OnlineUsers()
         {
             var onlineUsers = GetOnlineUsers();
-            string loggedInEmail = GetUserByConnectionId(Context.ConnectionId);
-            var getChats = GetChatsService(loggedInEmail);
-            List<ActiveUsers> activeList = new List<ActiveUsers>();
-            foreach(var user in getChats)
+            var httpContext = Context.GetHttpContext();
+            var user1 = httpContext.User;
+            var loggedInEmail = user1.FindFirst(ClaimTypes.Email)?.Value;
+            //string loggedInEmail = GetUserByConnectionId(Context.ConnectionId);
+            //var getChats = GetChatsService(loggedInEmail);
+            //------
+            var chatMaps = DbContext.ChatMappings.AsQueryable();
+            chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail));
+            Console.WriteLine(chatMaps.Count());
+            //var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
+            /*chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
+            chatMaps2 = chatMaps2.OrderBy(m => m.DateTime).Select(m => m).ToList();*/
+            //chatMaps.Remove(chatMaps.Where(s => s.FirstEmail == s.SecondEmail).FirstOrDefault());
+            List<string> res = new List<string>();
+
+            foreach ( var chatMap in chatMaps)
             {
-                ActiveUsers a = new ActiveUsers()
+                if (chatMap.FirstEmail != loggedInEmail)
                 {
-                    Email = user.SecondEmail,
-                    FirstName = user.FirstName2,
-                    LastName= user.LastName2,
-                };
-                if(onlineUsers.Contains(user.SecondEmail)) { a.IsActive = true; }
-                else { a.IsActive = false; }
-                activeList.Add(a);
+                    res.Add(chatMap.FirstEmail);
+                }
+                else if(chatMap.FirstEmail == loggedInEmail)
+                {
+                    res.Add(chatMap.SecondEmail);
+                }
             }
-            await Clients.All.SendAsync("UpdateOnlineUsers", activeList);
+            Console.WriteLine(res.Count());
+            List<ActiveUsers> activeList = new List<ActiveUsers>();
+            //var users = DbContext.Users.ToList();
+            int len = res.Count();
+            for (int i=0;i<len;i++)
+            {
+                Console.WriteLine(res[i]);
+                var user = DbContext.Users.AsQueryable().Where(s => (s.Email == res[i])).FirstOrDefaultAsync();
+                Console.WriteLine(user);
+                if(user != null)
+                {
+                    Console.WriteLine(user.Result.FirstName);
+                }
+                 ActiveUsers a = new ActiveUsers()
+                 {
+                        Email = res[i],
+                        FirstName = user.Result.FirstName,
+                        LastName = user.Result.LastName,
+                        IsActive = false
+                 };
+                 if (onlineUsers.Contains(res[i])) { a.IsActive = true; }
+                 else { a.IsActive = false; }
+                 activeList.Add(a);
+                Console.WriteLine(a);
+            }
+            /*foreach (var user in activeList)
+            {
+                var id = GetConnectionIdByUser(user.Email);
+                var temp = activeList;
+                if (id == null)
+                {
+                    continue;
+                }
+                temp.Remove(temp.Where(x => x.Email == user.Email).FirstOrDefault());
+                await Clients.Client(id).SendAsync("UpdateOnlineUsers", temp);
+            }*/
+            activeList.Remove(activeList.Where(x => x.Email == loggedInEmail).FirstOrDefault());
+            await Clients.Caller.SendAsync("UpdateOnlineUsers", activeList);
+            return activeList;
         }
         public async Task<string> SendMessage(InputMessage msg)
         {
@@ -101,7 +157,10 @@ namespace ChatApplication.Hubs
                 return "invalid mail";
             }
             //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
-            string SenderMail = GetUserByConnectionId(Context.ConnectionId);
+            var httpContext = Context.GetHttpContext();
+            var user1 = httpContext.User;
+            var SenderMail = user1.FindFirst(ClaimTypes.Email)?.Value;
+            //string SenderMail = GetUserByConnectionId(Context.ConnectionId);
             var response = AddMessage(SenderMail, msg.ReceiverEmail, msg.Content);
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
             RecevierMessage sendMsg = new RecevierMessage()
@@ -120,11 +179,20 @@ namespace ChatApplication.Hubs
         {
             Console.WriteLine("createChat fxn called");
             //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
-            string SenderMail = GetUserByConnectionId(Context.ConnectionId);
-            var res = await AddChat(SenderMail, ConnectToMail);
+            //string SenderMail = GetUserByConnectionId(Context.ConnectionId);
+            var httpContext = Context.GetHttpContext();
+            var user1 = httpContext.User;
+            var SenderMail = user1.FindFirst(ClaimTypes.Email)?.Value;
             string ReceiverId = GetConnectionIdByUser(ConnectToMail);
+            if (SenderMail==ConnectToMail)
+            {
+                await Clients.Caller.SendAsync("ChatCreated", "Can't Connect to same email");
+                return;
+            }
+            var res = await AddChat(SenderMail, ConnectToMail);
             await Clients.Client(ReceiverId).SendAsync("ChatCreated", res);
             await Clients.Caller.SendAsync("ChatCreated", res);
+            await OnlineUsers();
             /*  string ReceiverId = _chatService.GetConnectionIdByUser(ConnectToMail);
               await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", res);*/
         }
@@ -133,7 +201,10 @@ namespace ChatApplication.Hubs
         {
             Console.WriteLine("GetChats fxn called");
             //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
-            string Mail = GetUserByConnectionId(Context.ConnectionId);
+            //string Mail = GetUserByConnectionId(Context.ConnectionId);
+            var httpContext = Context.GetHttpContext();
+            var user1 = httpContext.User;
+            var Mail = user1.FindFirst(ClaimTypes.Email)?.Value;
             var res = GetChatsService(Mail);
             string ReceiverId = GetConnectionIdByUser(Mail);
             Clients.Client(ReceiverId).SendAsync("RecievedChats", res);
@@ -144,11 +215,14 @@ namespace ChatApplication.Hubs
         {
             Console.WriteLine("GetChatMessages fxn called");
             //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
-            string Mail = GetUserByConnectionId(Context.ConnectionId);
+            //string Mail = GetUserByConnectionId(Context.ConnectionId);
+            var httpContext = Context.GetHttpContext();
+            var user1 = httpContext.User;
+            var Mail = user1.FindFirst(ClaimTypes.Email)?.Value;
             List<OutputMessage> res = GetChatMessagesService(Mail, OtherMail, pageNumber, 30);
-            string ReceiverId = GetConnectionIdByUser(Mail);
+            string ReceiverId = GetConnectionIdByUser(OtherMail);
             Clients.Caller.SendAsync("RecievedChatMessages", res);
-            //Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
+            Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
             return res;
         }
 
@@ -200,7 +274,7 @@ namespace ChatApplication.Hubs
             }
         }
 
-        public void RemoveUserFromList(string user)
+        public  void RemoveUserFromList(string user)
         {
             lock (Users)
             {
@@ -307,30 +381,31 @@ namespace ChatApplication.Hubs
         public List<OutputChatMappings> GetChatsService(string email)
         {
             var chatMaps = DbContext.ChatMappings.ToList();
-            chatMaps = chatMaps.Where(s => (s.FirstEmail == email)).ToList();
-            var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
-            chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
-            chatMaps2 = chatMaps2.OrderBy(m => m.DateTime).Select(m => m).ToList();
+            chatMaps = chatMaps.Where(s => (s.FirstEmail == email) || (s.SecondEmail==email)).ToList();
+            //var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
+            /*chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
+            chatMaps2 = chatMaps2.OrderBy(m => m.DateTime).Select(m => m).ToList();*/
+            chatMaps.Remove(chatMaps.Where(s=>s.FirstEmail==s.SecondEmail).FirstOrDefault());
             List<OutputChatMappings> res = new List<OutputChatMappings>();
-
+            OutputChatMappings output = new OutputChatMappings() { };
             foreach (var cm in chatMaps)
             {
                 var user1 = DbContext.Users.Where(s => s.Email == cm.FirstEmail).FirstOrDefault();
                 var user2 = DbContext.Users.Where(s => s.Email == cm.SecondEmail).FirstOrDefault();
-                OutputChatMappings output = new OutputChatMappings()
-                {
-                    ChatId = cm.ChatId,
-                    FirstEmail = cm.FirstEmail,
-                    FirstName1 = user1.FirstName,
-                    LastName1 = user1.LastName,
-                    SecondEmail = cm.SecondEmail,
-                    FirstName2 = user2.FirstName,
-                    LastName2 = user2.LastName,
-                    DateTime = cm.DateTime,
-                };
+
+
+                    output.ChatId = cm.ChatId;
+                    output.FirstEmail = cm.FirstEmail;
+                    output.FirstName1 = user1.FirstName;
+                    output.LastName1 = user1.LastName;
+                    output.SecondEmail = cm.SecondEmail;
+                    output.FirstName2 = user2.FirstName;
+                    output.LastName2 = user2.LastName;
+                    output.DateTime = cm.DateTime;
+                
                 res.Add(output);
             }
-            foreach (var cm in chatMaps2)
+            /*foreach (var cm in chatMaps2)
             {
                 var user1 = DbContext.Users.Where(s => s.Email == cm.FirstEmail).FirstOrDefault();
                 var user2 = DbContext.Users.Where(s => s.Email == cm.SecondEmail).FirstOrDefault();
@@ -346,7 +421,9 @@ namespace ChatApplication.Hubs
                     DateTime = cm.DateTime,
                 };
                 res.Add(output);
-            }
+            }*/
+            res = res.OrderByDescending(x=>x.DateTime).ToList();
+            Console.WriteLine(res.Count);
 
             return res;
         }
