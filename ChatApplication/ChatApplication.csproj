@@ -26,6 +26,7 @@
   <ItemGroup>
     <Folder Include="Assets\Images\" />
     <Folder Include="Assets\Files\" />
+    <Folder Include="Assets\ProfilePics\" />
     <Folder Include="Validations\" />
   </ItemGroup>
 

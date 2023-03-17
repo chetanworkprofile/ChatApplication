@@ -20,6 +20,47 @@ namespace ChatApplication.Services
             DbContext = dbContext;
             authService = new AuthService(configuration, dbContext);
         }
+
+        public object GetYourself(string email, string token)
+        {
+            var userLoggedIn = DbContext.Users.Where(u => u.Email == email).FirstOrDefault();
+            
+            if(userLoggedIn == null || userLoggedIn.IsDeleted==true)
+            {
+                response2.StatusCode = 404;
+                response2.Message = "Can't get details user error";
+                response2.Success = false;
+                return response2;
+            }
+
+            if (token != userLoggedIn.Token)
+            {
+                response2.StatusCode = 401;
+                response2.Message = "Invalid/expired token. Login First";
+                response2.Success = false;
+                return response2;
+            }
+
+            ResponseUser r = new ResponseUser()
+            {
+                UserId = userLoggedIn.UserId,
+                FirstName = userLoggedIn.FirstName,
+                LastName = userLoggedIn.LastName,
+                Email = userLoggedIn.Email,
+                Phone = userLoggedIn.Phone,
+                DateOfBirth = userLoggedIn.DateOfBirth,
+                CreatedAt = userLoggedIn.CreatedAt,
+                UpdatedAt = userLoggedIn.UpdatedAt,
+                PathToProfilePic = userLoggedIn.PathToProfilePic,
+            };
+
+
+            response.StatusCode = 200;
+            response.Message = "Users list fetched";
+            response.Data = r;
+            response.Success = true;
+            return response;
+        }
         public object GetUsers(string email,string token,Guid? UserId, string? searchString, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
         {
             var userLoggedIn = DbContext.Users.Where(u => u.Email == email).FirstOrDefault();
@@ -33,7 +74,7 @@ namespace ChatApplication.Services
             
             if (token != userLoggedIn.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;
@@ -117,7 +158,7 @@ namespace ChatApplication.Services
 
             if (tokenloggedin != user.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;
@@ -220,7 +261,7 @@ namespace ChatApplication.Services
             User? user = await DbContext.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
             if (token != user.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;

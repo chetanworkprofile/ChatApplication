@@ -482,7 +482,7 @@ namespace ChatApplication.Services
             //var PasswordHash = CreatePasswordHash(r.oldPassword);
             if (token != user.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;
@@ -562,13 +562,13 @@ namespace ChatApplication.Services
             if (user == null)
             {
                 response2.StatusCode = 404;
-                response2.Message = "User not found/Invalid token";
+                response2.Message = "User not found";
                 response2.Success = false;
                 return response2;
             }
             if(token!=user.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;

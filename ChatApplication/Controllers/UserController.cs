@@ -24,6 +24,25 @@ namespace ChatApplication.Controllers
         }
 
         [HttpGet, Authorize(Roles = "login")]
+        [Route("/api/v1/users/getYourself")]
+        public IActionResult GetYourself()
+        {
+            try
+            {
+                _logger.LogInformation("Get Students method started");
+                string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                string? email = User.FindFirstValue(ClaimTypes.Email);
+                result = userService.GetYourself(email, token);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                return StatusCode(500, $"Internal server error: {ex}"); ;
+            }
+        }
+
+        [HttpGet, Authorize(Roles = "login")]
         [Route("/api/v1/users/get")]
         public IActionResult GetUsers(Guid? UserId = null, string? searchString = null, string? Email = null, long Phone = -1, String OrderBy = "Id", int SortOrder = 1, int RecordsPerPage = 100, int PageNumber = 0)          // sort order   ===   e1 for ascending  -1 for descending
         {

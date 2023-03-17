@@ -21,15 +21,71 @@ namespace ChatApplication.Services
             DbContext = dbContext;
         }
 
-        public async Task<object> PicUploadAsync(IFormFile file,bool IsProfilePic,string Email,string token)
+        public async Task<object> FileUploadAsync(IFormFile file,string Email,string token,int type)
         {
             User? user = user = await DbContext.Users.Where(u => u.Email == Email).FirstOrDefaultAsync();
-            var folderName = Path.Combine("Assets","Images");
+
+            if (token != user.Token)
+            {
+                response2.StatusCode = 401;
+                response2.Message = "Invalid/expired token. Login First";
+                response2.Success = false;
+                return response2;
+            }
+            if (file == null)
+            {
+                response2.Message = "Please provide a file for successful upload";
+                response2.StatusCode = 400;
+                response2.Success = false;
+                return response2;
+            }
+            if (file.Length > 0)
+            {
+                string folderName;
+                if (type == 2)
+                {
+                    folderName = Path.Combine("Assets", "Images"); 
+                }
+                else
+                {
+                    folderName = Path.Combine("Assets", "Files");
+                }
+                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+                var fileName = string.Concat(
+                                    Path.GetFileNameWithoutExtension(file.FileName),
+                                    DateTime.Now.ToString("yyyyMMddHHmmssfff"),
+                                    Path.GetExtension(file.FileName)
+                                    );
+
+                var fullPath = Path.Combine(pathToSave, fileName);
+
+                using (var stream = System.IO.File.Create(fullPath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                response.StatusCode= 200;
+                response.Message = "File Uploaded Successfully";
+                response.Success = true;
+                response.Data = Path.Combine(folderName, fileName);
+                return response;
+            }
+            response2.Message = "Please provide a file for successful upload";
+            response2.StatusCode = 400;
+            response2.Success = false;
+            return response2;
+        }
+
+
+        public async Task<object> ProfilePicUploadAsync(IFormFile file, string Email, string token)
+        {
+            User? user = user = await DbContext.Users.Where(u => u.Email == Email).FirstOrDefaultAsync();
+            var folderName = Path.Combine("Assets", "ProfilePics");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
 
             if (token != user.Token)
             {
-                response2.StatusCode = 404;
+                response2.StatusCode = 401;
                 response2.Message = "Invalid/expired token. Login First";
                 response2.Success = false;
                 return response2;
@@ -44,8 +100,9 @@ namespace ChatApplication.Services
             if (file.Length > 0)
             {
                 var fileName = string.Concat(
+                                    Email,
+                                    DateTime.Now.ToString("yyyyMMddHHmmssfff"), 
                                     Path.GetFileNameWithoutExtension(file.FileName),
-                                    DateTime.Now.ToString("yyyyMMddHHmmssfff"),
                                     Path.GetExtension(file.FileName)
                                     );
 
@@ -55,14 +112,10 @@ namespace ChatApplication.Services
                 {
                     await file.CopyToAsync(stream);
                 }
-               
-                if (IsProfilePic == true)
-                {
-                    user.PathToProfilePic = Path.Combine(folderName, fileName);
-                    await DbContext.SaveChangesAsync();
-                }
+                user.PathToProfilePic = Path.Combine(folderName, fileName);
+                await DbContext.SaveChangesAsync();
 
-                response.StatusCode= 200;
+                response.StatusCode = 200;
                 response.Message = "File Uploaded Successfully";
                 ResponseUser responseUser = new ResponseUser()
                 {
@@ -70,10 +123,10 @@ namespace ChatApplication.Services
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    DateOfBirth= user.DateOfBirth,
-                    CreatedAt= user.CreatedAt,
-                    Phone= user.Phone,
-                    PathToProfilePic= user.PathToProfilePic,
+                    DateOfBirth = user.DateOfBirth,
+                    CreatedAt = user.CreatedAt,
+                    Phone = user.Phone,
+                    PathToProfilePic = user.PathToProfilePic,
                     UpdatedAt = user.UpdatedAt
                 };
                 FileResponseData data = new FileResponseData()
@@ -82,6 +135,7 @@ namespace ChatApplication.Services
                     PathToPic = Path.Combine(folderName, fileName),
                 };
                 response.Data = data;
+                response.Success = true;
                 return response;
             }
             response2.Message = "Please provide a file for successful upload";
@@ -89,6 +143,7 @@ namespace ChatApplication.Services
             response2.Success = false;
             return response2;
         }
+
 
     }
 }
