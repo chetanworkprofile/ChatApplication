@@ -91,7 +91,7 @@ namespace ChatApplication.Hubs
             //var getChats = GetChatsService(loggedInEmail);
             //------
             var chatMaps = DbContext.ChatMappings.AsQueryable();
-            chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail));
+            chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail)).OrderByDescending(s=>s.DateTime);
             Console.WriteLine(chatMaps.Count());
             //var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
             /*chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
@@ -119,10 +119,10 @@ namespace ChatApplication.Hubs
                 Console.WriteLine(res[i]);
                 var user = DbContext.Users.AsQueryable().Where(s => (s.Email == res[i])).FirstOrDefaultAsync();
                 Console.WriteLine(user);
-                if(user != null)
+                /*if(user != null)
                 {
                     Console.WriteLine(user.Result.FirstName);
-                }
+                }*/
                  ActiveUsers a = new ActiveUsers()
                  {
                         Email = res[i],
@@ -179,17 +179,10 @@ namespace ChatApplication.Hubs
             };
             Console.WriteLine(message);
             Console.WriteLine("path" + PathToFileAttachement);
-            /*OutputMessage res = new OutputMessage()
-            {
-                MessageId = message.MessageId,
-                Content = message.Content,
-                DateTime = message.DateTime,
-                ReceiverEmail = message.ReceiverEmail,
-                SenderEmail = message.SenderEmail,
-                Type = msg.Type,
-                PathToFileAttachement = msg.PathToFileAttachement,
-            };*/
             await DbContext.Messages.AddAsync(message);
+            
+            var chatmap = DbContext.ChatMappings.Where(s=>(s.FirstEmail== msg.ReceiverEmail && s.SecondEmail==SenderMail) || (s.FirstEmail == SenderMail && s.SecondEmail == msg.ReceiverEmail)).FirstOrDefault();
+            chatmap.DateTime = DateTime.Now;
             await DbContext.SaveChangesAsync();
             /*var a = DbContext.Messages.Find(message.MessageId);
             a.PathToFileAttachement = msg.PathToFileAttachement;
@@ -201,14 +194,17 @@ namespace ChatApplication.Hubs
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
             RecevierMessage sendMsg = new RecevierMessage()
             {
-                SenderEmail= SenderMail,
-                Content= msg.Content,
+                SenderEmail = SenderMail,
+                ReceiverEmail = msg.ReceiverEmail,
+                Content = msg.Content,
                 Type = msg.Type,
+                DateTime = message.DateTime,
                 PathToFileAttachement= PathToFileAttachement
             };
             
-            //await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
+            await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
             await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", sendMsg);
+            refesh();
             return;
             //await Clients.Caller.SendAsync("ReceivedMessage","helo sender");
             //handle if user is not online
