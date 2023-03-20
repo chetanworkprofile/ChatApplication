@@ -1,4 +1,6 @@
-﻿namespace ChatApplication.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ChatApplication.Models
 {
     public class Message
     {

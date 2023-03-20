@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
@@ -149,35 +150,65 @@ namespace ChatApplication.Hubs
             await Clients.Caller.SendAsync("UpdateOnlineUsers", activeList);
             return activeList;
         }
-        public async Task<string> SendMessage(InputMessage msg)
+        public async Task SendMessage(InputMessage msg,string? PathToFileAttachement = "empty")
         {
             Console.WriteLine("SendMessage Socket fxn called");
             if (msg.ReceiverEmail == "" || msg.ReceiverEmail == null)
             {
-                return "Invalid mail";
+                return;
             }
             //string? SenderMail = Context.User.FindFirstValue(ClaimTypes.Email);
             var httpContext = Context.GetHttpContext();
             var user1 = httpContext.User;
             var SenderMail = user1.FindFirst(ClaimTypes.Email)?.Value;
             //string SenderMail = GetUserByConnectionId(Context.ConnectionId);
-            string path = msg.PathToFileAttachement;
-            if (msg.Type == 1)
+            //string path = msg.PathToFileAttachement;
+
+            //var response = AddMessage(SenderMail, msg.ReceiverEmail, msg.Content,msg.Type,msg.PathToFileAttachement);
+            Console.WriteLine(msg);
+            Message message = new Message()
             {
-                path = "";
-            }
-            var response = AddMessage(SenderMail, msg.ReceiverEmail, msg.Content,msg.Type,path);
+                MessageId = Guid.NewGuid(),
+                SenderEmail = SenderMail,
+                ReceiverEmail = msg.ReceiverEmail,
+                Content = msg.Content,
+                DateTime = DateTime.Now,
+                Type = msg.Type,
+                PathToFileAttachement = PathToFileAttachement,
+                IsDeleted = false
+            };
+            Console.WriteLine(message);
+            Console.WriteLine("path" + PathToFileAttachement);
+            /*OutputMessage res = new OutputMessage()
+            {
+                MessageId = message.MessageId,
+                Content = message.Content,
+                DateTime = message.DateTime,
+                ReceiverEmail = message.ReceiverEmail,
+                SenderEmail = message.SenderEmail,
+                Type = msg.Type,
+                PathToFileAttachement = msg.PathToFileAttachement,
+            };*/
+            await DbContext.Messages.AddAsync(message);
+            await DbContext.SaveChangesAsync();
+            /*var a = DbContext.Messages.Find(message.MessageId);
+            a.PathToFileAttachement = msg.PathToFileAttachement;
+            DbContext.SaveChanges();*/
+            //return res;
+
+
+
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
             RecevierMessage sendMsg = new RecevierMessage()
             {
                 SenderEmail= SenderMail,
                 Content= msg.Content,
                 Type = msg.Type,
-                PathToFileAttachement= path
+                PathToFileAttachement= PathToFileAttachement
             };
             await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",sendMsg);
             await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
-            return "Message sent";
+            return;
             //await Clients.Caller.SendAsync("ReceivedMessage","helo sender");
             //handle if user is not online
         }
@@ -232,8 +263,6 @@ namespace ChatApplication.Hubs
             Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
             return res;
         }
-
-
 
 
 
@@ -300,7 +329,7 @@ namespace ChatApplication.Hubs
             }
         }
 
-        public OutputMessage AddMessage(string sender, string reciever, string content,int type, string pathToFileAttachment)
+        public OutputMessage AddMessage(string sender, string reciever, string content,int type, string path)
         {
             Message message = new Message()
             {
@@ -310,9 +339,11 @@ namespace ChatApplication.Hubs
                 Content = content,
                 DateTime = DateTime.Now,
                 Type = type,
-                PathToFileAttachement = pathToFileAttachment,
+                PathToFileAttachement = path,
                 IsDeleted = false
             };
+            Console.WriteLine(message);
+            Console.WriteLine("path" + path);
             OutputMessage res = new OutputMessage()
             {
                 MessageId = message.MessageId,
@@ -321,7 +352,7 @@ namespace ChatApplication.Hubs
                 ReceiverEmail = message.ReceiverEmail,
                 SenderEmail = message.SenderEmail,
                 Type= type,
-                PathToFileAttachement= pathToFileAttachment,
+                PathToFileAttachement= path,
             };
             DbContext.Messages.Add(message);
             DbContext.SaveChanges();
@@ -459,7 +490,9 @@ namespace ChatApplication.Hubs
                     Content = msg.Content,
                     DateTime = msg.DateTime,
                     ReceiverEmail = msg.ReceiverEmail,
-                    SenderEmail = msg.SenderEmail
+                    SenderEmail = msg.SenderEmail,
+                    Type= msg.Type,
+                    PathToFileAttachement= msg.PathToFileAttachement
                 };
                 res.Add(output);
             }
