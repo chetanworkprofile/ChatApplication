@@ -206,8 +206,9 @@ namespace ChatApplication.Hubs
                 Type = msg.Type,
                 PathToFileAttachement= PathToFileAttachement
             };
-            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage",sendMsg);
-            await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
+            
+            //await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
+            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", sendMsg);
             return;
             //await Clients.Caller.SendAsync("ReceivedMessage","helo sender");
             //handle if user is not online
@@ -260,7 +261,7 @@ namespace ChatApplication.Hubs
             List<OutputMessage> res = GetChatMessagesService(Mail, OtherMail, pageNumber, 30);
             string ReceiverId = GetConnectionIdByUser(OtherMail);
             Clients.Caller.SendAsync("RecievedChatMessages", res);
-            Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
+            //Clients.Client(ReceiverId).SendAsync("RecievedChatMessages", res);
             return res;
         }
 

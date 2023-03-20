@@ -144,7 +144,7 @@ namespace ChatApplication.Services
                 };
                 response.Data = data;
                 response.Success = true;
-                chatAppHub.AddUserConnectionId(data.Email);
+                //chatAppHub.AddUserConnectionId(data.Email);
                 //chatAppHub.refesh();
                 return response;
             }
@@ -209,7 +209,7 @@ namespace ChatApplication.Services
             };
             response.Data = data;
             response.Success = true;
-            chatAppHub.AddUserConnectionId(data.Email);
+            //chatAppHub.AddUserConnectionId(data.Email);
             //chatAppHub.refesh();
             return response;
         }
@@ -596,7 +596,7 @@ namespace ChatApplication.Services
                 //string returntoken = CreateToken(tokenUser);
                 response2.StatusCode = 200;
                 response2.Message = "User Logged out Successfully";
-                chatAppHub.RemoveUserFromList(email);
+                //chatAppHub.RemoveUserFromList(email);
                 //chatAppHub.refesh();
                 //response2.Data = responsedata;
                 response2.Success = true;
