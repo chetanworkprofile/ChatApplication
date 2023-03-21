@@ -5,3 +5,6 @@
         public IFormFile file { get; set; }
     }
 }
+
+
+//input model

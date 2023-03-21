@@ -9,3 +9,6 @@
         //public DateTime DateTime { get; set; } = DateTime.MinValue;
     }
 }
+
+//output model
+// to return list of active/ online users

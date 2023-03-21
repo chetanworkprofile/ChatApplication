@@ -9,3 +9,6 @@
         public string Role { get; set; } = string.Empty;
     }
 }
+
+
+//model used while creating a token 

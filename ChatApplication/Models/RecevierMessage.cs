@@ -14,3 +14,7 @@
         public string PathToFileAttachement { get; set; }
     }
 }
+
+
+//output model 
+// used while sending messages 

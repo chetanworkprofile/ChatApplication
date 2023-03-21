@@ -1,4 +1,4 @@
-﻿using ChatApplication.Data;
+﻿/*using ChatApplication.Data;
 using ChatApplication.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +6,7 @@ using System;
 
 namespace ChatApplication.Services
 {
-    /* public class ChatService : IChatService
+    *//* public class ChatService : IChatService
      {
          Response response = new Response();
          ResponseWithoutData response2 = new ResponseWithoutData();
@@ -257,7 +257,7 @@ namespace ChatApplication.Services
              }
 
          }
-     }*/
+     }*//*
     public class ChatService : IChatService
     {
         // Key, Value eg: { {"abc@gmail.com", "unique_connection_id"}
@@ -293,7 +293,7 @@ namespace ChatApplication.Services
             }
         }
 
-        /*public void AddUserConnectinId(string user, string connectionId)
+        *//*public void AddUserConnectinId(string user, string connectionId)
         {
             lock (Users)
             {
@@ -302,7 +302,7 @@ namespace ChatApplication.Services
                     Users[user] = connectionId;
                 }
             }
-        }*/
+        }*//*
 
         public string GetUserByConnectionId(string connectionId)
         {
@@ -480,3 +480,4 @@ namespace ChatApplication.Services
     }
 }
 
+*/

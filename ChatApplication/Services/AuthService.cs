@@ -22,20 +22,23 @@ namespace ChatApplication.Services
 {
     public class AuthService : IAuthService
     {
-        Response response = new Response();
+        Response response = new Response();                             //response models/objects
         ResponseWithoutData response2 = new ResponseWithoutData();
-        TokenUser tokenUser = new TokenUser();
+        TokenUser tokenUser = new TokenUser();              // model to create token
         object result = new object();
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
         ChatAppHub chatAppHub;
 
+        // secondary service file to make code clean
+        SecondaryAuthService _secondaryAuthService;
 
         public AuthService(IConfiguration configuration,ChatAppDbContext dbContext)
         {
             this._configuration = configuration;
             DbContext = dbContext;
             chatAppHub = new ChatAppHub(dbContext);
+            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext);
         }
 
 
@@ -45,6 +48,8 @@ namespace ChatApplication.Services
             bool existingUser = DbUsers.Where(u => u.Email == inpUser.Email).Any();
             if (!existingUser)
             {
+                //-----------------------------------------------------------------------------------------------------------------//
+                //-----------------model validations--------------------------------------//
                 TimeSpan ageTimeSpan = DateTime.Now - inpUser.DateOfBirth;
                 int age = (int)(ageTimeSpan.Days / 365.25);
 
@@ -88,10 +93,12 @@ namespace ChatApplication.Services
                     response2.Success = false;
                     return response2;
                 }
+                //-----------------------------------------------------------------------------------------------------------------//
+                //create new user object to add into database
                 var user = new User()
                 {
                     UserId = Guid.NewGuid(),
-                    PasswordHash = CreatePasswordHash(inpUser.Password),
+                    PasswordHash = _secondaryAuthService.CreatePasswordHash(inpUser.Password),
                     FirstName = inpUser.FirstName,
                     LastName = inpUser.LastName,
                     Email = inpUser.Email,
@@ -104,29 +111,16 @@ namespace ChatApplication.Services
                     IsDeleted = false,
                     PathToProfilePic = null
                 };
-                /*var responseUser = new ResponseUser()
-                {
-                    UserId = user.UserId,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    Phone = user.Phone,
-                    DateOfBirth = user.DateOfBirth,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt,
-                    PathToProfilePic = user.PathToProfilePic
-                };*/
 
                 var tokenUser = new TokenUser()
                 {
                     Email= inpUser.Email,
                     FirstName= inpUser.FirstName,
                     Role = "login"
-                   /* LastName= inpUser.LastName,
-                    UserId = user.UserId*/
                 };
 
-                string token = CreateToken(tokenUser);
+                // create token to return after successful registration
+                string token = _secondaryAuthService.CreateToken(tokenUser);
                 user.Token = token;
                 await DbContext.Users.AddAsync(user);
                 await DbContext.SaveChangesAsync();
@@ -134,6 +128,7 @@ namespace ChatApplication.Services
 
                 response.StatusCode = 200;
                 response.Message = "User added Successfully";
+                //response object
                 ResponseDataObj data = new ResponseDataObj()
                 {
                     UserId = user.UserId,
@@ -160,6 +155,8 @@ namespace ChatApplication.Services
 
         public Object Login(UserDTO request)
         {
+            //-----------------------------------------------------------------------------------------------------------------//
+            //-----------------model validations--------------------------------------//
             string regexPatternEmail = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
             if (!Regex.IsMatch(request.Email, regexPatternEmail))
             {
@@ -184,22 +181,27 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-            else if (!VerifyPasswordHash(request.Password, user.PasswordHash))
+            else if (!_secondaryAuthService.VerifyPasswordHash(request.Password, user.PasswordHash))
             {
                 response2.StatusCode = 403;
                 response2.Message = "Wrong password.";
                 response2.Success = false;
                 return response2;
             }
+            //-----------------------------------------------------------------------------------------------------------------//
+
+            //creating token
             tokenUser.Email = user.Email;
             tokenUser.FirstName = user.FirstName;
             tokenUser.Role = "login";
-            string token = CreateToken(tokenUser);
+            string token = _secondaryAuthService.CreateToken(tokenUser);
             user.Token = token;
-            DbContext.SaveChanges();
+
+            DbContext.SaveChanges();            // save into database
+
             response.StatusCode = 200;
             response.Message = "Login Successful";
-            ResponseDataObj data = new ResponseDataObj()
+            ResponseDataObj data = new ResponseDataObj()            //response model
             {
                 UserId = user.UserId,
                 Email = user.Email,
@@ -218,32 +220,41 @@ namespace ChatApplication.Services
         {
             try
             {
-                //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
+                //find user in database
                 var user = await DbContext.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
                 bool exists = DbContext.Users.Where(u => u.Email == email).Any();
-                Random random = new Random();
-                int otp = random.Next(100000, 999999);
-                user.VerificationOTP = otp;
-                user.OtpUsableTill= DateTime.Now.AddHours(1);
-                user.Token = string.Empty;
 
-                if (!exists || user==null)
+                if (!exists || user == null)            //retrun if user doesn't exist
                 {
                     response2.StatusCode = 404;
                     response2.Message = "User not found";
                     response2.Success = false;
                     return response2;
                 }
-           
-                response2 = SendEmail(email, otp);
+
+                //generate random otp 
+                Random random = new Random();
+                int otp = random.Next(100000, 999999);
+
+                //save otp in database
+                user.VerificationOTP = otp;
+                user.OtpUsableTill= DateTime.Now.AddHours(1);               // otp check valid for 1 hour only
+                user.Token = string.Empty;                          //clear token from database
+
+                //send mail function used to send mail 
+                response2 = _secondaryAuthService.SendEmail(email, otp);
                 await DbContext.SaveChangesAsync();
+
+                // generate token used for reseting password can't user this token to login
                 var tokenUser = new TokenUser()
                 {
                     Email = user.Email,
                     FirstName = user.FirstName,
                     Role = "resetpassword"
                 };
-                string returntoken = CreateToken(tokenUser);
+
+                string returntoken = _secondaryAuthService.CreateToken(tokenUser);
+                //response object
                 if (response2.StatusCode == 200)
                 {
                     response.StatusCode= 200;
@@ -273,9 +284,10 @@ namespace ChatApplication.Services
 
         public async Task<Object> Verify(ResetpassModel r,string email)
         {
+            //this api function is used after forget password to verify user and help user reset his/her password
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
             var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
+            if (user == null)               //check if email exists in database
             {
                 response2.StatusCode = 404;
                 response2.Message = "User not found";
@@ -289,7 +301,7 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-            if(user.OtpUsableTill < DateTime.Now)
+            if(user.OtpUsableTill < DateTime.Now)           // checks if otp is expired or not
             {
                 response2.StatusCode = 400;
                 response2.Message = "Otp Expired";
@@ -303,61 +315,13 @@ namespace ChatApplication.Services
             return result;
         }
 
-        internal ResponseWithoutData SendEmail(string email,int value)
-        {
-            try
-            {
-                MailMessage message = new MailMessage();
-
-                // set the sender and recipient email addresses
-                message.From = new MailAddress("verification@chatapp.chicmic.co.in");
-                message.Subject = "Mail Verification by ChatApplication. Verify your account";
-                message.To.Add(new MailAddress(email));
-
-                // set the subject and body of the email
-                //message.Subject = "Verify your account";
-                message.Body = "Please verify your reset password attempt. Your One Time Password for verification is " + value;             /*"Please click on the following link to verify your account: http://192.180.2.159:4040/api/v1/verify?email=" + email+"&value"+value;    //verificationCode;*/
-
-                // create a new SmtpClient object
-                SmtpClient client = new SmtpClient();
-
-                // set the SMTP server credentials and port
-                client.Credentials = new NetworkCredential("chetan.gupta@chicmic.co.in", "Chicmic@2022");
-                client.Host = "mail.chicmic.co.in";
-                client.Port = 587;
-                client.EnableSsl = true;
-
-                // send the email
-                client.Send(message);
-                response2.StatusCode = 200;
-                response2.Message = "Verification Email Sent successfully";
-                //response.Data = string.Empty;
-                response2.Success = true;
-                return response2;
-            }
-            catch(Exception ex)
-            {
-                response2.StatusCode = 500;
-                response2.Message = ex.Message;
-                //response.Data = ex.Data;
-                Console.WriteLine(ex);
-                response2.Success = false;
-                return response2;
-            }
-        }
 
         internal async Task<object> ResetPassword(string password,string email)
         {
             //var user = await DbContext.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
             var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            /*if (r.Password != r.ConfirmPassword)
-            {
-                response.StatusCode = 400;
-                response.Message = "Password and confirm password do not match";
-                response.Data = string.Empty;
-                return response;
-            }*/
+            //password validation
             string regexPatternPassword = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$";
             if (!Regex.IsMatch(password, regexPatternPassword))
             {
@@ -368,15 +332,19 @@ namespace ChatApplication.Services
             }
             try
             {
-                byte[] pass = CreatePasswordHash(password);
+                //creating new password hash
+                byte[] pass = _secondaryAuthService.CreatePasswordHash(password);
                 user.PasswordHash = pass;
 
+                //create token
                 tokenUser.Email = user.Email;
                 tokenUser.FirstName = user.FirstName;
                 tokenUser.Role = "login";
-                string token = CreateToken(tokenUser);
+                string token = _secondaryAuthService.CreateToken(tokenUser);
+
                 user.Token = token;
                 await DbContext.SaveChangesAsync();
+
                 var responsedata = new ResponseDataObj()
                 {
                     UserId = user.UserId,
@@ -402,6 +370,7 @@ namespace ChatApplication.Services
             }
         }
 
+        //function for google/social login
         public Object GoogleHelper(GoogleJsonWebSignature.Payload user)
         {
             if(user.EmailVerified != true)
@@ -422,7 +391,7 @@ namespace ChatApplication.Services
                     FirstName = user.GivenName,
                     LastName = user.FamilyName,
                     UserId = new Guid(),
-                    PasswordHash = CreatePasswordHash("gsahgfas@#$2343hjdshadAAHSHG676@@dJHJSd"),
+                    PasswordHash = _secondaryAuthService.CreatePasswordHash("gsahgfas@#$2343hjdshadAAHSHG676@@dJHJSd"),
                     IsDeleted= false,
                     CreatedAt = DateTime.Now,
                     DateOfBirth = DateTime.Now,
@@ -436,11 +405,9 @@ namespace ChatApplication.Services
                     Email = newUser.Email,
                     FirstName = newUser.FirstName,
                     Role = "login"
-                    /* LastName= inpUser.LastName,
-                     UserId = user.UserId*/
                 };
 
-                returntoken = CreateToken(tokenUser);
+                returntoken = _secondaryAuthService.CreateToken(tokenUser);
                 newUser.Token = returntoken;
                 DbContext.Users.Add(newUser);
                 DbContext.SaveChanges();
@@ -451,11 +418,10 @@ namespace ChatApplication.Services
                 {
                     Email = user.Email,
                     FirstName = user.GivenName,
-                    /* LastName= inpUser.LastName,
-                     UserId = user.UserId*/
+                    Role = "login"
                 };
 
-                returntoken = CreateToken(tokenUser);
+                returntoken = _secondaryAuthService.CreateToken(tokenUser);
                 userExists.Token= returntoken;
                 DbContext.SaveChanges();
             }
@@ -495,7 +461,7 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
-            if (!VerifyPasswordHash(r.oldPassword, user.PasswordHash))
+            if (!_secondaryAuthService.VerifyPasswordHash(r.oldPassword, user.PasswordHash))
             {
                 response2.StatusCode = 400;
                 response2.Message = "Invalid Old password";
@@ -513,7 +479,7 @@ namespace ChatApplication.Services
             }
             try
             {
-                byte[] pass = CreatePasswordHash(r.Password);
+                byte[] pass = _secondaryAuthService.CreatePasswordHash(r.Password);
                 user.PasswordHash = pass;
 
                 tokenUser.Email = user.Email;
@@ -530,15 +496,7 @@ namespace ChatApplication.Services
                     Email = user.Email,
                     Token = user.Token
                 };
-                /*var tokenUser = new TokenUser()
-                {
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    *//* LastName= inpUser.LastName,
-                     UserId = user.UserId*//*
-                };*/
-
-                //string returntoken = CreateToken(tokenUser);
+                
                 response.StatusCode = 200;
                 response.Message = "Password change successful";
                 response.Data = responsedata;
@@ -575,6 +533,7 @@ namespace ChatApplication.Services
             }
             try
             {
+                // remove token from database
                 user.Token = string.Empty;
                 await DbContext.SaveChangesAsync();
                 var responsedata = new ResponseDataObj()
@@ -585,15 +544,7 @@ namespace ChatApplication.Services
                     Email = user.Email,
                     Token = token
                 };
-                /*var tokenUser = new TokenUser()
-                {
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    *//* LastName= inpUser.LastName,
-                     UserId = user.UserId*//*
-                };*/
-
-                //string returntoken = CreateToken(tokenUser);
+                
                 response2.StatusCode = 200;
                 response2.Message = "User Logged out Successfully";
                 //chatAppHub.RemoveUserFromList(email);
@@ -611,48 +562,7 @@ namespace ChatApplication.Services
                 return response2;
             }
         }
-
-        public string CreateToken(TokenUser user)
-        {
-            List<Claim> claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.FirstName),
-                new Claim(ClaimTypes.Role,user.Role)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration.GetSection("AppSettings:Token").Value!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-            var token = new JwtSecurityToken(
-                    claims: claims,
-                    expires: DateTime.Now.AddDays(1),
-                    signingCredentials: creds
-                );
-
-            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-            return jwt;
-        }
-
-        public byte[] CreatePasswordHash(string password)
-        {
-            byte[] salt = Encoding.ASCII.GetBytes(_configuration.GetSection("AppSettings:Password_Salt").Value!);
-            byte[] passwordHash;
-            using (var hmac = new HMACSHA512(salt))
-            {
-                passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-            }
-            return passwordHash;
-        }
-        public bool VerifyPasswordHash(string password, byte[] passwordHash)
-        {
-            byte[] salt = Encoding.ASCII.GetBytes(_configuration.GetSection("AppSettings:Password_Salt").Value!);
-            using (var hmac = new HMACSHA512(salt))
-            {
-                var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-                return computedHash.SequenceEqual(passwordHash);
-            }
-        }
+   
 
     }
 }

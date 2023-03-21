@@ -12,7 +12,8 @@ namespace ChatApplication.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        IUserService userService;
+        //controller for user details, updating user and deleting user
+        IUserService userService;                   //service dependency
         Response response = new Response();
         object result = new object();
         private readonly ILogger<AuthController> _logger;
@@ -25,7 +26,7 @@ namespace ChatApplication.Controllers
 
         [HttpGet, Authorize(Roles = "login")]
         [Route("/api/v1/users/getYourself")]
-        public IActionResult GetYourself()
+        public IActionResult GetYourself()                  // api for user to get data of himself for proifile details
         {
             try
             {
@@ -42,6 +43,7 @@ namespace ChatApplication.Controllers
             }
         }
 
+        //getusers api to get list of other users and details
         [HttpGet, Authorize(Roles = "login")]
         [Route("/api/v1/users/get")]
         public IActionResult GetUsers(Guid? UserId = null, string? searchString = null, string? Email = null, long Phone = -1, String OrderBy = "Id", int SortOrder = 1, int RecordsPerPage = 100, int PageNumber = 0)          // sort order   ===   e1 for ascending  -1 for descending

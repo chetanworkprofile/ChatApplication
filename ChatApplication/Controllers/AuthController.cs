@@ -11,18 +11,18 @@ using ChatApplication.Hubs;
 
 namespace ChatApplication.Controllers
 {
+    //auth controller to handle all authentication related works like register,login, logout, reset password etc.
     [Route("api/v1/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-        
-        IAuthService authService;
-        Response response = new Response();
-        ResponseWithoutData response2 = new ResponseWithoutData();
-        object result = new object();
+        IAuthService authService;               //service dependency
+        Response response = new Response();     //response model instance
+        ResponseWithoutData response2 = new ResponseWithoutData();      //response model in case we don't return data
+        object result = new object();                                   //object to match both response models in return values from function
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)
+        public AuthController(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)          //constructor
         {
             authService = new AuthService(configuration,dbContext);
             _logger = logger;
@@ -100,7 +100,7 @@ namespace ChatApplication.Controllers
             _logger.LogInformation("verification attempt");
             try
             {
-                string? email = User.FindFirstValue(ClaimTypes.Email);
+                string? email = User.FindFirstValue(ClaimTypes.Email);                  //extracting email from token
                 result = authService.Verify(r,email).Result;
                 return Ok(result);
             }
@@ -120,7 +120,7 @@ namespace ChatApplication.Controllers
             _logger.LogInformation("reset password attempt");
             try
             {
-                string token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                string token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();        //getting token from header
                 /*var user = HttpContext.User;
                 string email = user.FindFirst(ClaimTypes.Email)?.Value;*/
                 string? email = User.FindFirstValue(ClaimTypes.Email);
@@ -177,6 +177,9 @@ namespace ChatApplication.Controllers
             }
         }
 
+
+//-----------------------------------------------------------------------------------------------------------------------------------//
+//----------- code commented just for backup code ----------------------------------------------------------------------------------//
 
 
 

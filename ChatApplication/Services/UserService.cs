@@ -13,12 +13,15 @@ namespace ChatApplication.Services
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
         IAuthService authService;
+        // secondary service file to make code clean
+        SecondaryAuthService _secondaryAuthService;
 
         public UserService(IConfiguration configuration, ChatAppDbContext dbContext)
         {
             this._configuration = configuration;
             DbContext = dbContext;
             authService = new AuthService(configuration, dbContext);
+            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext);
         }
 
         public object GetYourself(string email, string token)
@@ -63,14 +66,16 @@ namespace ChatApplication.Services
         }
         public object GetUsers(string email,string token,Guid? UserId, string? searchString, string? Email, long Phone, String OrderBy, int SortOrder, int RecordsPerPage, int PageNumber)          // sort order   ===   e1 for ascending   -1 for descending
         {
+            //get logged in user from database
             var userLoggedIn = DbContext.Users.Where(u => u.Email == email).FirstOrDefault();
             var userss = DbContext.Users.AsQueryable();
-            userss = userss.Where(u => u.Email != email);
+            userss = userss.Where(u => u.Email != email);       //remove logged in user from list
+
             //userss = userss.Where(x => (x.UserId == UserId || UserId == null) && (x.IsDeleted == false) && (EF.Functions.Like(x.FirstName, "%" + searchString + "%") || EF.Functions.Like(x.LastName, "%" + searchString + "%") || searchString == null) &&
             //(x.Email == Email || Email == null)).Select(x => x);
 
 
-            userss = userss.Where(t => t.IsDeleted == false);
+            userss = userss.Where(t => t.IsDeleted == false);     //remove deleted users from list
             
             if (token != userLoggedIn.Token)
             {
@@ -79,15 +84,18 @@ namespace ChatApplication.Services
                 response2.Success = false;
                 return response2;
             }
+
+            //--------------------------filtering based on userId,searchString, Email, or Phone---------------------------------//
+            
             if (UserId != null) { userss = userss.Where(s => (s.UserId == UserId)); }
             if (searchString != null) { userss = userss.Where(s => EF.Functions.Like(s.FirstName, "%" + searchString + "%") || EF.Functions.Like(s.LastName, "%" + searchString + "%") || EF.Functions.Like(s.FirstName+" "+s.LastName, "%" + searchString + "%")); }
-            
             //if (FirstName != null) { users = users.Where(s => (s.FirstName == FirstName)).ToList(); }
             if (Email != null) { userss = userss.Where(s => (s.Email == Email)); }
             if (Phone != -1) { userss = userss.Where(s => (s.Phone == Phone)); }
+
             var users = userss.ToList();
 
-
+            // delegate used to create orderby depending on user input
             Func<User, Object> orderBy = s => s.UserId;
             if (OrderBy == "UserId" || OrderBy == "ID" || OrderBy == "Id")
             {
@@ -102,7 +110,7 @@ namespace ChatApplication.Services
                 orderBy = x => x.Email;
             }
 
-
+            // sort according to input based on orderby
             if (SortOrder == 1)
             {
                 users = users.OrderBy(orderBy).Select(c => (c)).ToList();
@@ -120,7 +128,7 @@ namespace ChatApplication.Services
 
             foreach (var user in users)
             {
-                ResponseUser r = new ResponseUser()
+                ResponseUser r = new ResponseUser()                 //need to use automapper or constructor here
                 {
                     UserId = user.UserId,
                     FirstName = user.FirstName,
@@ -210,18 +218,7 @@ namespace ChatApplication.Services
                 }
                 user.UpdatedAt= DateTime.Now;
                 await DbContext.SaveChangesAsync();
-                /*ResponseUser resuser = new ResponseUser()
-                {
-                    UserId = user.UserId,
-                    Email = email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    CreatedAt = user.CreatedAt,
-                    DateOfBirth= user.DateOfBirth,
-                    PathToProfilePic= user.PathToProfilePic,
-                    Phone= user.Phone,
-                    UpdatedAt = user.UpdatedAt
-                };*/
+                
                 var tokenUser = new TokenUser()
                 {
                     Email = user.Email,
@@ -230,7 +227,7 @@ namespace ChatApplication.Services
                     /* LastName= inpUser.LastName,
                      UserId = user.UserId*/
                 };
-                string token =authService.CreateToken(tokenUser);
+                string token = _secondaryAuthService.CreateToken(tokenUser);
                 user.Token = token;
                 ResponseDataObj data = new ResponseDataObj()
                 {
@@ -267,7 +264,7 @@ namespace ChatApplication.Services
                 return response2;
             }
             byte[] phash = user.PasswordHash;
-            if (!authService.VerifyPasswordHash(password, phash)){
+            if (!_secondaryAuthService.VerifyPasswordHash(password, phash)){
                 response2.Success = false;
                 response2.Message = "Invalid Password";
                 response2.StatusCode = 400;

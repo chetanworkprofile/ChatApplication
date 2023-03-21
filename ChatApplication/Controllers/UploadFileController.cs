@@ -8,11 +8,12 @@ using ChatApplication.Data;
 
 namespace ChatApplication.Controllers
 {
+    //controller to handle file upload 
     [Route("api/v1/[controller]")]
     [ApiController]
     public class UploadFileController : ControllerBase
     {
-        UploadPicService uploadPicServiceInstance;
+        UploadPicService uploadPicServiceInstance;      //service dependency
         private readonly ILogger<UploadFileController> _logger;
         object result = new object();
         ResponseWithoutData response2 = new ResponseWithoutData();
@@ -31,20 +32,10 @@ namespace ChatApplication.Controllers
             try
             {
                 _logger.LogInformation("File/Image Upload method started");
-                string? email = User.FindFirstValue(ClaimTypes.Email);
-                string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                string? email = User.FindFirstValue(ClaimTypes.Email);                                //extracting email from header token
+                string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();       //getting token from authorization header
                 result = await uploadPicServiceInstance.FileUploadAsync(file,email,token,type);
 
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode != 200)
-                {
-                    return Ok(result);
-                }
-                else
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
@@ -59,7 +50,6 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/uploadProfilePic")]
         public async Task<IActionResult> ProfilePicUploadAsync(IFormFile file)                //[FromForm] FileUpload File
         {
-            //type 2 is for image and save in images folder and type 2 is for file to save in files folder
             try
             {
                 _logger.LogInformation("Pic Upload method started");

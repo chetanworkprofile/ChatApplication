@@ -6,3 +6,7 @@
         public string PathToPic { get; set; } = string.Empty;
     }
 }
+
+
+//output model
+//to give response after profile pic upload

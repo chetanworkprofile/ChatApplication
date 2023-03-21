@@ -12,8 +12,8 @@ namespace ChatApplication.Services
         public Task<Object> Verify(ResetpassModel r, string email);
         public Task<object> ChangePassword(ChangePassModel r,string email,string token);
         public Object GoogleHelper(GoogleJsonWebSignature.Payload user);
-        public bool VerifyPasswordHash(string password, byte[] passwordHash);
-        public string CreateToken(TokenUser user);
+        //public bool VerifyPasswordHash(string password, byte[] passwordHash);
+        //public string CreateToken(TokenUser user);
         public Task<object> Logout(string email, string token);
 
     }

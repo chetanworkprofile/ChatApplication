@@ -12,3 +12,6 @@ namespace ChatApplication.Models
         
     }
 }
+
+//input model
+//model to change password

@@ -33,30 +33,33 @@ namespace ChatApplication.Hubs
 
 
         /*private readonly ChatService _chatService;
-            public ChatAppHub(ChatService chatService)
-            {
-                _chatService = chatService;
-            }*/
+         public ChatAppHub(ChatService chatService)
+         {
+             _chatService = chatService;
+         }*/
 
-            public async override Task<Task> OnConnectedAsync()
+        public async override Task<Task> OnConnectedAsync()             // on connected server calls client g=function to send email that is added in dictionary
+        {
+            try
             {
-                try
-                {
-                    Console.WriteLine("connected");
-                    //string? email = Context.User.FindFirstValue(ClaimTypes.Email);
-                    //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
-                    //_chatService.AddUserToList(email,Context.ConnectionId); 
-                    Clients.Caller.SendAsync("UserConnected");
-                    Clients.All.SendAsync("refresh");
-                    //DisplayOnlineUsers();
+                Console.WriteLine("connected");
+                //string? email = Context.User.FindFirstValue(ClaimTypes.Email);
+                //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
+                //_chatService.AddUserToList(email,Context.ConnectionId); 
+                Clients.Caller.SendAsync("UserConnected");
+                Clients.All.SendAsync("refresh");
+
+                //refereh function is called on client side to alarm them to call Online users function and get updated list of online users
+
+                //DisplayOnlineUsers();
                 //await Clients.All.SendAsync("UpdateOnlineUsers",_chatService.GetOnlineUsers());
-                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-                return base.OnConnectedAsync();
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return base.OnConnectedAsync();
+        }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
@@ -93,10 +96,7 @@ namespace ChatApplication.Hubs
             var chatMaps = DbContext.ChatMappings.AsQueryable();
             chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail)).OrderByDescending(s=>s.DateTime);
             Console.WriteLine(chatMaps.Count());
-            //var chatMaps2 = chatMaps.Where(s => (s.SecondEmail == email)).ToList();
-            /*chatMaps = chatMaps.OrderBy(m => m.DateTime).Select(m => m).ToList();
-            chatMaps2 = chatMaps2.OrderBy(m => m.DateTime).Select(m => m).ToList();*/
-            //chatMaps.Remove(chatMaps.Where(s => s.FirstEmail == s.SecondEmail).FirstOrDefault());
+            
             List<string> res = new List<string>();
 
             foreach ( var chatMap in chatMaps)
@@ -318,6 +318,7 @@ namespace ChatApplication.Hubs
             }
         }
 
+        //get users email in dictionary
         public string[] GetOnlineUsers()
         {
             lock (Users)
@@ -326,6 +327,11 @@ namespace ChatApplication.Hubs
             }
         }
 
+
+        //------------------------------------------------------------------------------------------------------------------//
+        //----------------------------service functions-------------------------------------------------------------------//
+
+        //create new message and add in database
         public OutputMessage AddMessage(string sender, string reciever, string content,int type, string path)
         {
             Message message = new Message()
@@ -356,6 +362,7 @@ namespace ChatApplication.Hubs
             return res;
         }
 
+        // create new chat mapping if exist send it
         public async Task<object> AddChat(string FirstMail, string SecondMail)
         {
             var chatdb = DbContext.ChatMappings;
@@ -384,13 +391,6 @@ namespace ChatApplication.Hubs
                     IsDeleted = false
                 };
 
-                /*OutputChatMappings output = new OutputChatMappings()
-                {
-                    ChatId = chatMap.ChatId,
-                    FirstEmail = chatMap.FirstEmail,
-                    SecondEmail = chatMap.SecondEmail,
-                    DateTime = chatMap.DateTime,
-                };*/
                 await DbContext.ChatMappings.AddAsync(chatMap);
                 await DbContext.SaveChangesAsync();
                 chats = chatMap;
@@ -417,6 +417,7 @@ namespace ChatApplication.Hubs
             return response;
         }
 
+        //function invoked to get all chat mappings created for a particular user
         public List<OutputChatMappings> GetChatsService(string email)
         {
             var chatMaps = DbContext.ChatMappings.ToList();
@@ -444,29 +445,14 @@ namespace ChatApplication.Hubs
                 
                 res.Add(output);
             }
-            /*foreach (var cm in chatMaps2)
-            {
-                var user1 = DbContext.Users.Where(s => s.Email == cm.FirstEmail).FirstOrDefault();
-                var user2 = DbContext.Users.Where(s => s.Email == cm.SecondEmail).FirstOrDefault();
-                OutputChatMappings output = new OutputChatMappings()
-                {
-                    ChatId = cm.ChatId,
-                    FirstEmail = cm.SecondEmail ,
-                    FirstName1 = user2.FirstName,
-                    LastName1 = user2.LastName,
-                    SecondEmail = cm.FirstEmail,
-                    FirstName2 = user1.FirstName,
-                    LastName2 = user1.LastName,
-                    DateTime = cm.DateTime,
-                };
-                res.Add(output);
-            }*/
+           
             res = res.OrderByDescending(x=>x.DateTime).ToList();
             Console.WriteLine(res.Count);
 
             return res;
         }
 
+        // function invoked to get previous chat between two users
         public List<OutputMessage> GetChatMessagesService(string email, string otherEmail, int pageNumber, int skipLimit)
         {
             //var messages = DbContext.Messages.AsQueryable();
@@ -496,61 +482,6 @@ namespace ChatApplication.Hubs
             res.Reverse();
             return res;
         }
-
-
-
-
-
-        /*
-            public async Task AddUserConnectionId(string name)
-            {
-                _chatService.AddUserConnectinId(name, Context.ConnectionId);
-                await DisplayOnlineUsers();
-            }
-
-            public async Task ReceiveMessage(MessageDto message)
-            {
-                await Clients.Group("Come2Chat").SendAsync("NewMessage", message);
-            }
-
-            public async Task CreatePrivateChat(MessageDto message)
-            {
-                string privateGroupName = GetPrivateGroupName(message.From, message.To);
-                await Groups.AddToGroupAsync(Context.ConnectionId, privateGroupName);
-                var toConnectionId = _chatService.GetConnectionIdByUser(message.To);
-                await Groups.AddToGroupAsync(toConnectionId, privateGroupName);
-
-                // opening private chatbox for the other end user
-                await Clients.Client(toConnectionId).SendAsync("OpenPrivateChat", message);
-            }
-
-            public async Task RecivePrivateMessage(MessageDto message)
-            {
-                string privateGroupName = GetPrivateGroupName(message.From, message.To);
-                await Clients.Group(privateGroupName).SendAsync("NewPrivateMessage", message);
-            }
-
-            public async Task RemovePrivateChat(string from, string to)
-            {
-                string privateGroupName = GetPrivateGroupName(from, to);
-                await Clients.Group(privateGroupName).SendAsync("CloseProivateChat");
-
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, privateGroupName);
-                var toConnectionId = _chatService.GetConnectionIdByUser(to);
-                await Groups.RemoveFromGroupAsync(toConnectionId, privateGroupName);
-            }
-
-            private async Task DisplayOnlineUsers()
-            {
-                var onlineUsers = _chatService.GetOnlineUsers();
-                await Clients.Groups("Come2Chat").SendAsync("OnlineUsers", onlineUsers);
-            }
-
-            private string GetPrivateGroupName(string from, string to)
-            {
-                // from: john, to: david  "david-john"
-                var stringCompare = string.CompareOrdinal(from, to) < 0;
-                return stringCompare ? $"{from}-{to}" : $"{to}-{from}";
-            }*/
+        //-----------------------------------------------------------------------------------------------------------------//
     }
 }
