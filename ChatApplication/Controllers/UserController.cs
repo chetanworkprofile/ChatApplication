@@ -20,7 +20,7 @@ namespace ChatApplication.Controllers
 
         public UserController(IConfiguration configuration, ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
-            userService = new UserService(configuration, dbContext);
+            userService = new UserService(configuration, dbContext,logger);
             _logger = logger;
         }
 

@@ -24,7 +24,7 @@ namespace ChatApplication.Controllers
 
         public AuthController(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)          //constructor
         {
-            authService = new AuthService(configuration,dbContext);
+            authService = new AuthService(configuration,dbContext, logger);
             _logger = logger;
         }
 

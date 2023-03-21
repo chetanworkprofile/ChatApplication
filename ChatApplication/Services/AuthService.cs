@@ -17,6 +17,7 @@ using Google.Apis.Auth;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using ChatApplication.Hubs;
+using ChatApplication.Controllers;
 
 namespace ChatApplication.Services
 {
@@ -33,12 +34,12 @@ namespace ChatApplication.Services
         // secondary service file to make code clean
         SecondaryAuthService _secondaryAuthService;
 
-        public AuthService(IConfiguration configuration,ChatAppDbContext dbContext)
+        public AuthService(IConfiguration configuration,ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
             this._configuration = configuration;
             DbContext = dbContext;
-            chatAppHub = new ChatAppHub(dbContext);
-            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext);
+            chatAppHub = new ChatAppHub(dbContext,logger);
+            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext,logger) ;
         }
 
 

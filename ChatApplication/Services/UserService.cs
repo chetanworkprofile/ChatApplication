@@ -1,4 +1,5 @@
-﻿using ChatApplication.Data;
+﻿using ChatApplication.Controllers;
+using ChatApplication.Data;
 using ChatApplication.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -16,12 +17,12 @@ namespace ChatApplication.Services
         // secondary service file to make code clean
         SecondaryAuthService _secondaryAuthService;
 
-        public UserService(IConfiguration configuration, ChatAppDbContext dbContext)
+        public UserService(IConfiguration configuration, ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
             this._configuration = configuration;
             DbContext = dbContext;
-            authService = new AuthService(configuration, dbContext);
-            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext);
+            authService = new AuthService(configuration, dbContext, logger);
+            _secondaryAuthService = new SecondaryAuthService(configuration, dbContext, logger);
         }
 
         public object GetYourself(string email, string token)

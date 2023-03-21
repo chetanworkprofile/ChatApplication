@@ -8,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ChatApplication.Controllers;
 
 namespace ChatApplication.Services
 {
@@ -23,11 +24,11 @@ namespace ChatApplication.Services
         ChatAppHub chatAppHub;
 
 
-        public SecondaryAuthService(IConfiguration configuration, ChatAppDbContext dbContext)
+        public SecondaryAuthService(IConfiguration configuration, ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
             this._configuration = configuration;
             DbContext = dbContext;
-            chatAppHub = new ChatAppHub(dbContext);
+            chatAppHub = new ChatAppHub(dbContext,logger);
         }
         internal ResponseWithoutData SendEmail(string email, int value)
         {
