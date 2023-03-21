@@ -1,4 +1,5 @@
-﻿using ChatApplication.Data;
+﻿using ChatApplication.Controllers;
+using ChatApplication.Data;
 using ChatApplication.Models;
 using ChatApplication.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -23,12 +24,14 @@ namespace ChatApplication.Hubs
         object result = new object();
         private readonly ChatAppDbContext DbContext;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
 
-        public ChatAppHub( ChatAppDbContext dbContext)
+        public ChatAppHub( ChatAppDbContext dbContext, ILogger<AuthController> logger)
         {
             //this._configuration = configuration;
             DbContext = dbContext;
+            _logger = logger;
         }
 
 
@@ -42,6 +45,7 @@ namespace ChatApplication.Hubs
         {
             try
             {
+                _logger.LogInformation("New User connected to socket");
                 Console.WriteLine("connected");
                 //string? email = Context.User.FindFirstValue(ClaimTypes.Email);
                 //await Groups.AddToGroupAsync(Context.ConnectionId, "Come2Chat");
@@ -56,13 +60,14 @@ namespace ChatApplication.Hubs
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                _logger.LogError("Internal server error ", ex.Message);
             }
             return base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
+            _logger.LogInformation("user disconnected");
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Come2Chat");
             var user = GetUserByConnectionId(Context.ConnectionId);
             RemoveUserFromList(user);
@@ -76,6 +81,7 @@ namespace ChatApplication.Hubs
         }
         public async Task AddUserConnectionId(string email)
         {
+            _logger.LogInformation("User added to online dictionary ",email);
             AddUserToList(email.ToLower(), Context.ConnectionId);
             //await OnlineUsers();
         }
@@ -86,6 +92,7 @@ namespace ChatApplication.Hubs
         }*/
         public async Task<List<ActiveUsers>> OnlineUsers()
         {
+            _logger.LogInformation("OnlineUsers method started");
             var onlineUsers = GetOnlineUsers();
             var httpContext = Context.GetHttpContext();
             var user1 = httpContext.User;
@@ -152,7 +159,7 @@ namespace ChatApplication.Hubs
         }
         public async Task SendMessage(InputMessage msg,string? PathToFileAttachement = "empty")
         {
-            Console.WriteLine("SendMessage Socket fxn called");
+            _logger.LogInformation("SendMessage method started ");
             if (msg.ReceiverEmail == "" || msg.ReceiverEmail == null)
             {
                 return;
@@ -177,18 +184,13 @@ namespace ChatApplication.Hubs
                 PathToFileAttachement = PathToFileAttachement,
                 IsDeleted = false
             };
-            Console.WriteLine(message);
-            Console.WriteLine("path" + PathToFileAttachement);
+            _logger.LogInformation(message.ToString());
+            
             await DbContext.Messages.AddAsync(message);
             
             var chatmap = DbContext.ChatMappings.Where(s=>(s.FirstEmail== msg.ReceiverEmail && s.SecondEmail==SenderMail) || (s.FirstEmail == SenderMail && s.SecondEmail == msg.ReceiverEmail)).FirstOrDefault();
             chatmap.DateTime = DateTime.Now;
             await DbContext.SaveChangesAsync();
-            /*var a = DbContext.Messages.Find(message.MessageId);
-            a.PathToFileAttachement = msg.PathToFileAttachement;
-            DbContext.SaveChanges();*/
-            //return res;
-
 
 
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
@@ -237,7 +239,7 @@ namespace ChatApplication.Hubs
 
         public List<OutputChatMappings> GetChats()
         {
-            Console.WriteLine("GetChats fxn called");
+            _logger.LogInformation("GetChats fxn called");
             //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
             //string Mail = GetUserByConnectionId(Context.ConnectionId);
             var httpContext = Context.GetHttpContext();
@@ -251,7 +253,7 @@ namespace ChatApplication.Hubs
 
         public List<OutputMessage> GetChatMessages(string OtherMail, int pageNumber)
         {
-            Console.WriteLine("GetChatMessages fxn called");
+            _logger.LogInformation("GetChatMessages fxn called");
             //string? Mail = Context.User.FindFirstValue(ClaimTypes.Email);
             //string Mail = GetUserByConnectionId(Context.ConnectionId);
             var httpContext = Context.GetHttpContext();

@@ -41,13 +41,13 @@ namespace ChatApplication.Controllers
             }
             try
             {
-                _logger.LogInformation("Register User method started");
-                result = authService.CreateUser(inpUser).Result;
+                _logger.LogInformation("User registration attempt");
+                result = authService.CreateUser(inpUser).Result;;
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 //ResponseWithoutData response = new ResponseWithoutData();
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
@@ -67,6 +67,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode=500;
                 response2.Message = ex.Message;
                 response2.Success = false;
@@ -86,6 +87,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
                 response2.Success = false;
@@ -106,6 +108,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
                 response2.Success = false;
@@ -129,6 +132,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
                 response2.Success = false;
@@ -140,6 +144,7 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/googleAuth")]
         public async Task<IActionResult> GoogleAuth(string Token)
         {
+            _logger.LogInformation("Google auth attempt");
             try
             {
                 var GoogleUser = await GoogleJsonWebSignature.ValidateAsync(Token);
@@ -148,6 +153,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode = 400;
                 response2.Message = ex.Message;
                 response2.Success = false;
@@ -170,6 +176,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Internal server error ", ex.Message);
                 response2.StatusCode = 500;
                 response2.Message = ex.Message;
                 response2.Success = false;

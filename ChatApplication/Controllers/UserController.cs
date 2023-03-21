@@ -28,9 +28,9 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/users/getYourself")]
         public IActionResult GetYourself()                  // api for user to get data of himself for proifile details
         {
+            _logger.LogInformation("Get Students method started");
             try
             {
-                _logger.LogInformation("Get Students method started");
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 result = userService.GetYourself(email, token);
@@ -38,7 +38,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}"); ;
             }
         }
@@ -48,9 +48,9 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/users/get")]
         public IActionResult GetUsers(Guid? UserId = null, string? searchString = null, string? Email = null, long Phone = -1, String OrderBy = "Id", int SortOrder = 1, int RecordsPerPage = 100, int PageNumber = 0)          // sort order   ===   e1 for ascending  -1 for descending
         {
+            _logger.LogInformation("Get Students method started");
             try
             {
-                _logger.LogInformation("Get Students method started");
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 result = userService.GetUsers(email,token,UserId, searchString, Email, Phone, OrderBy, SortOrder, RecordsPerPage, PageNumber);
@@ -58,7 +58,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}"); ;
             }
         }
@@ -67,11 +67,11 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/users/update")]
         public IActionResult UpdateStudent(UpdateUser u)
         {
+            _logger.LogInformation("Update user method started");
             try
             {
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                _logger.LogInformation("Update user method started");
                 result = userService.UpdateUser(email,u,token).Result;
                 /*if (response.StatusCode == 200)
                 {
@@ -81,7 +81,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}"); ;
             }
         }
@@ -90,11 +90,11 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/user/delete")]
         public IActionResult DeleteUser(string Password)
         {
+            _logger.LogInformation("Delete Student method started");
             try
             {
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                _logger.LogInformation("Delete Student method started");
                 result = userService.DeleteUser(email,token,Password).Result;
                 /*if (response.StatusCode == 200)
                 {
@@ -104,7 +104,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}"); ;
             }
         }

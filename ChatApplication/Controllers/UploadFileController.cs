@@ -29,9 +29,9 @@ namespace ChatApplication.Controllers
         public async Task<IActionResult> FileUploadAsync(int type, IFormFile file)
         {
             //type 2 is for image and save in images folder and type 2 is for file to save in files folder
+            _logger.LogInformation("File/Image Upload method started");
             try
             {
-                _logger.LogInformation("File/Image Upload method started");
                 string? email = User.FindFirstValue(ClaimTypes.Email);                                //extracting email from header token
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();       //getting token from authorization header
                 result = await uploadPicServiceInstance.FileUploadAsync(file,email,token,type);
@@ -40,7 +40,7 @@ namespace ChatApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}");
             }
         }
@@ -50,28 +50,18 @@ namespace ChatApplication.Controllers
         [Route("/api/v1/uploadProfilePic")]
         public async Task<IActionResult> ProfilePicUploadAsync(IFormFile file)                //[FromForm] FileUpload File
         {
+            _logger.LogInformation("Pic Upload method started");
             try
             {
-                _logger.LogInformation("Pic Upload method started");
                 string? email = User.FindFirstValue(ClaimTypes.Email);
                 string? token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 result = await uploadPicServiceInstance.ProfilePicUploadAsync(file, email,token);
 
-                /*response2 = (ResponseWithoutData)result;
-
-                if (response2.StatusCode != 200)
-                {
-                    return Ok(result);
-                }
-                else
-                {
-                    return BadRequest(response2);
-                }*/
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError("Internal server error something wrong happened ", DateTime.Now);
+                _logger.LogError("Internal server error ", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex}");
             }
         }
