@@ -203,7 +203,10 @@ namespace ChatApplication.Hubs
             };
             
             await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
-            await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", sendMsg);
+            if (ReceiverId!=null)
+            {
+                await Clients.Client(ReceiverId).SendAsync("ReceivedMessage", sendMsg); 
+            }
             refesh();
             return;
             //await Clients.Caller.SendAsync("ReceivedMessage","helo sender");
