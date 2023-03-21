@@ -54,19 +54,11 @@ namespace ChatApplication.Services
                 TimeSpan ageTimeSpan = DateTime.Now - inpUser.DateOfBirth;
                 int age = (int)(ageTimeSpan.Days / 365.25);
 
-                // Perform your DOB validation here based on your specific requirements
-                if (age < 12)
-                {
-                    // The user is not enough
-                    response2.StatusCode = 200;
-                    response2.Message = "Not allowed to register. User is underage. Must be atleast 12 years old";
-                    response2.Success = false;
-                    return response2;
-                }
-                else if (age > 150)
+                string regexPatternFirstName = "^[a-z0-9]{2,10}$";
+                if (!Regex.IsMatch(inpUser.FirstName, regexPatternFirstName))
                 {
                     response2.StatusCode = 400;
-                    response2.Message = "Not allowed to register. User is overage.Must be atmost 150 years old";
+                    response2.Message = "Please Enter Valid Name";
                     response2.Success = false;
                     return response2;
                 }
@@ -91,6 +83,22 @@ namespace ChatApplication.Services
                 {
                     response2.StatusCode = 400;
                     response2.Message = "Please Enter Valid PhoneNo";
+                    response2.Success = false;
+                    return response2;
+                }
+                // Perform your DOB validation here based on your specific requirements
+                if (age < 12)
+                {
+                    // The user is not enough
+                    response2.StatusCode = 200;
+                    response2.Message = "Not allowed to register. User is underage. Must be atleast 12 years old";
+                    response2.Success = false;
+                    return response2;
+                }
+                else if (age > 150)
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Not allowed to register. User is overage.Must be atmost 150 years old";
                     response2.Success = false;
                     return response2;
                 }
@@ -224,6 +232,14 @@ namespace ChatApplication.Services
                 //find user in database
                 var user = await DbContext.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
                 bool exists = DbContext.Users.Where(u => u.Email == email).Any();
+                string regexPatternEmail = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
+                if (!Regex.IsMatch(email, regexPatternEmail))
+                {
+                    response2.StatusCode = 400;
+                    response2.Message = "Please Enter Valid Email";
+                    response2.Success = false;
+                    return response2;
+                }
 
                 if (!exists || user == null)            //retrun if user doesn't exist
                 {
