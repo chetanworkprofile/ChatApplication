@@ -18,6 +18,7 @@ using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using ChatApplication.Hubs;
 using ChatApplication.Controllers;
+using System.Web.Http.ModelBinding;
 
 namespace ChatApplication.Services
 {

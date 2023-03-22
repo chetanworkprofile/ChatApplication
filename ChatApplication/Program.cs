@@ -83,14 +83,14 @@ builder.Services.AddCors(options => options.AddPolicy(name: "CorsPolicy",
     policy =>
     {
         policy.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
-        //policy.WithOrigins("http://127.0.0.1:5500").AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+        policy.WithOrigins("http://127.0.0.1:5500").AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
     }
     ));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUploadPicService, UploadPicService>();
-builder.Services.AddScoped<IAuthorizationMiddlewareResultHandler, AuthorizationMiddlewareResultHandlerService>();
+//builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationMiddlewareResultHandlerService>();
 
 // Build the WebApplication instance
 var app = builder.Build();

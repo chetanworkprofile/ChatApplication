@@ -11,7 +11,8 @@
 
         public DateTime DateTime { get; set; } = DateTime.MinValue;
         //public bool IsDeleted { get; set; }
-        public string PathToFileAttachement { get; set; }
+        public string PathToFileAttachement { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
     }
 }
 

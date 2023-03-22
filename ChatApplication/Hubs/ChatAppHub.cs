@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -194,6 +195,7 @@ namespace ChatApplication.Hubs
 
 
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
+            var fileName = PathToFileAttachement.Split("/").Last();
             RecevierMessage sendMsg = new RecevierMessage()
             {
                 SenderEmail = SenderMail,
@@ -201,7 +203,8 @@ namespace ChatApplication.Hubs
                 Content = msg.Content,
                 Type = msg.Type,
                 DateTime = message.DateTime,
-                PathToFileAttachement= PathToFileAttachement
+                PathToFileAttachement= PathToFileAttachement,
+                FileName = fileName
             };
             
             await Clients.Caller.SendAsync("ReceivedMessage", sendMsg);
@@ -472,6 +475,7 @@ namespace ChatApplication.Hubs
 
             foreach (var msg in messages)
             {
+                var fileName  = msg.PathToFileAttachement.Split("/").Last();
                 OutputMessage output = new OutputMessage()
                 {
                     MessageId = msg.MessageId,
@@ -480,7 +484,8 @@ namespace ChatApplication.Hubs
                     ReceiverEmail = msg.ReceiverEmail,
                     SenderEmail = msg.SenderEmail,
                     Type= msg.Type,
-                    PathToFileAttachement= msg.PathToFileAttachement
+                    PathToFileAttachement= msg.PathToFileAttachement,
+                    FileName= fileName,
                 };
                 res.Add(output);
             }

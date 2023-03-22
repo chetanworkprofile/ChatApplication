@@ -63,11 +63,15 @@ namespace ChatApplication.Services
                 {
                     await file.CopyToAsync(stream);
                 }
-
+                FileUploadResponse res = new FileUploadResponse()
+                {
+                    FileName = fileName,
+                     PathToFile= Path.Combine(folderName, fileName)
+            };
                 response.StatusCode= 200;
                 response.Message = "File Uploaded Successfully";
                 response.Success = true;
-                response.Data = Path.Combine(folderName, fileName);
+                response.Data = res;
                 return response;
             }
             response2.Message = "Please provide a file for successful upload";
@@ -132,7 +136,8 @@ namespace ChatApplication.Services
                 FileResponseData data = new FileResponseData()
                 {
                     User = responseUser,
-                    PathToPic = Path.Combine(folderName, fileName),
+                    FileName = fileName,
+                    PathToPic = Path.Combine(folderName, fileName)
                 };
                 response.Data = data;
                 response.Success = true;
