@@ -55,14 +55,14 @@ namespace ChatApplication.Services
                 TimeSpan ageTimeSpan = DateTime.Now - inpUser.DateOfBirth;
                 int age = (int)(ageTimeSpan.Days / 365.25);
 
-                string regexPatternFirstName = "^[a-z0-9]{2,10}$";
+                /*string regexPatternFirstName = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])";
                 if (!Regex.IsMatch(inpUser.FirstName, regexPatternFirstName))
                 {
                     response2.StatusCode = 400;
                     response2.Message = "Please Enter Valid Name";
                     response2.Success = false;
                     return response2;
-                }
+                }*/
                 string regexPatternEmail = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
                 if (!Regex.IsMatch(inpUser.Email, regexPatternEmail))
                 {

@@ -176,18 +176,18 @@ namespace ChatApplication.Services
 
             if (user != null && user.IsDeleted == false)
             {
-                if (u.FirstName != "string" && u.FirstName != null)
+                if (u.FirstName != "string" && u.FirstName != string.Empty)
                 {
                     user.FirstName = u.FirstName;
                 }
-                if (u.LastName != "string" && u.LastName != null)
+                if (u.LastName != "string" && u.LastName != string.Empty)
                 {
                     user.LastName = u.LastName;
                 }
-                if (u.Email != "string" && u.Email != null)
+               /* if (u.Email != "string" && u.Email != string.Empty)
                 {
-                    bool EmailAlreadyExists = DbContext.Users.Where(s => s.Email == u.Email).Any();
-                    if(EmailAlreadyExists)
+                    var EmailAlreadyExists = DbContext.Users.Where(s => s.Email == u.Email).First();
+                    if(EmailAlreadyExists!=null)
                     {
                         response2.Success = false;
                         response2.StatusCode = 400;
@@ -195,8 +195,8 @@ namespace ChatApplication.Services
                         return response2;
                     }
                     user.Email = u.Email;
-                }
-                if (u.PathToProfilePic != "string" && u.PathToProfilePic != null)
+                }*/
+                if (u.PathToProfilePic != "string" && u.PathToProfilePic != string.Empty)
                 {
                     user.PathToProfilePic = u.PathToProfilePic;
                 }
@@ -220,23 +220,23 @@ namespace ChatApplication.Services
                 user.UpdatedAt= DateTime.Now;
                 await DbContext.SaveChangesAsync();
                 
-                var tokenUser = new TokenUser()
+                /*var tokenUser = new TokenUser()
                 {
                     Email = user.Email,
                     FirstName = user.FirstName,
                     Role = "login"
-                    /* LastName= inpUser.LastName,
-                     UserId = user.UserId*/
+                    *//* LastName= inpUser.LastName,
+                     UserId = user.UserId*//*
                 };
                 string token = _secondaryAuthService.CreateToken(tokenUser);
-                user.Token = token;
-                ResponseDataObj data = new ResponseDataObj()
+                user.Token = token;*/
+                ResponseDataObj2 data = new ResponseDataObj2()
                 {
                     UserId = user.UserId,
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    Token = token
+                    //Token = token
                 };
                 await DbContext.SaveChangesAsync();
                 response.StatusCode = 200;

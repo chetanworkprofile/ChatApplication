@@ -91,8 +91,9 @@ namespace ChatApplication.Hubs
             var onlineUsers = GetOnlineUsers();
             await Clients.All.SendAsync("UpdateOnlineUsers", onlineUsers);
         }*/
-        public async Task<List<ActiveUsers>> OnlineUsers()
+        public async Task OnlineUsers()
         {
+            
             _logger.LogInformation("OnlineUsers method started");
             var onlineUsers = GetOnlineUsers();
             var httpContext = Context.GetHttpContext();
@@ -101,8 +102,8 @@ namespace ChatApplication.Hubs
             //string loggedInEmail = GetUserByConnectionId(Context.ConnectionId);
             //var getChats = GetChatsService(loggedInEmail);
             //------
-            var chatMaps = DbContext.ChatMappings.AsQueryable();
-            chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail)).OrderByDescending(s=>s.DateTime);
+            var chatMaps = DbContext.ChatMappings.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail)).OrderByDescending(s => s.DateTime).ToList();
+            //chatMaps = chatMaps.Where(s => (s.FirstEmail == loggedInEmail) || (s.SecondEmail == loggedInEmail)).OrderByDescending(s=>s.DateTime).ToList();
             Console.WriteLine(chatMaps.Count());
             
             List<string> res = new List<string>();
@@ -125,23 +126,24 @@ namespace ChatApplication.Hubs
             for (int i=0;i<len;i++)
             {
                 Console.WriteLine(res[i]);
-                var user = DbContext.Users.AsQueryable().Where(s => (s.Email == res[i])).FirstOrDefaultAsync();
+                var user = DbContext.Users.Where(s => (s.Email == res[i])).Select(s=>s).First();
                 Console.WriteLine(user);
                 /*if(user != null)
                 {
                     Console.WriteLine(user.Result.FirstName);
                 }*/
-                 ActiveUsers a = new ActiveUsers()
-                 {
+                    ActiveUsers a = new ActiveUsers
+                    {
                         Email = res[i],
-                        FirstName = user.Result.FirstName,
-                        LastName = user.Result.LastName,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
                         IsActive = false
-                 };
-                 if (onlineUsers.Contains(res[i])) { a.IsActive = true; }
-                 else { a.IsActive = false; }
-                 activeList.Add(a);
-                Console.WriteLine(a);
+                    };
+
+                    if (onlineUsers.Contains(res[i])) { a.IsActive = true; }
+                    else { a.IsActive = false; }
+                    activeList.Add(a);
+                    Console.WriteLine(a);
             }
             /*foreach (var user in activeList)
             {
@@ -156,7 +158,8 @@ namespace ChatApplication.Hubs
             }*/
             activeList.Remove(activeList.Where(x => x.Email == loggedInEmail).FirstOrDefault());
             await Clients.Caller.SendAsync("UpdateOnlineUsers", activeList);
-            return activeList;
+
+            //return activeList;
         }
         public async Task SendMessage(InputMessage msg,string? PathToFileAttachement = "empty")
         {
@@ -173,6 +176,7 @@ namespace ChatApplication.Hubs
             //string path = msg.PathToFileAttachement;
 
             //var response = AddMessage(SenderMail, msg.ReceiverEmail, msg.Content,msg.Type,msg.PathToFileAttachement);
+            
             Console.WriteLine(msg);
             Message message = new Message()
             {
@@ -196,10 +200,14 @@ namespace ChatApplication.Hubs
 
             string ReceiverId = GetConnectionIdByUser(msg.ReceiverEmail);
             var fileName = PathToFileAttachement.Split("/").Last();
+            var sender = DbContext.Users.Where(x => x.Email == SenderMail).First();
+            var receiver = DbContext.Users.Where(x => x.Email == msg.ReceiverEmail).First();
             RecevierMessage sendMsg = new RecevierMessage()
             {
                 SenderEmail = SenderMail,
+                SenderPicPath = sender.PathToProfilePic,
                 ReceiverEmail = msg.ReceiverEmail,
+                ReceiverPicPath = receiver.PathToProfilePic,
                 Content = msg.Content,
                 Type = msg.Type,
                 DateTime = message.DateTime,
@@ -472,9 +480,11 @@ namespace ChatApplication.Hubs
             messages = messages.Skip((pageNumber - 1) * skipLimit).Take(skipLimit).ToList();
 
             List<OutputMessage> res = new List<OutputMessage>();
-
+            
             foreach (var msg in messages)
             {
+                var sender = DbContext.Users.Where(x => x.Email == msg.SenderEmail).First();
+                var receiver = DbContext.Users.Where(x => x.Email == msg.ReceiverEmail).First();
                 var fileName  = msg.PathToFileAttachement.Split("/").Last();
                 OutputMessage output = new OutputMessage()
                 {
@@ -482,7 +492,9 @@ namespace ChatApplication.Hubs
                     Content = msg.Content,
                     DateTime = msg.DateTime,
                     ReceiverEmail = msg.ReceiverEmail,
+                    ReceiverPicPath = receiver.PathToProfilePic,
                     SenderEmail = msg.SenderEmail,
+                    SenderPicPath = sender.PathToProfilePic,
                     Type= msg.Type,
                     PathToFileAttachement= msg.PathToFileAttachement,
                     FileName= fileName,
