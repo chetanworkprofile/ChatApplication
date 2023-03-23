@@ -137,7 +137,8 @@ namespace ChatApplication.Hubs
                         Email = res[i],
                         FirstName = user.FirstName,
                         LastName = user.LastName,
-                        IsActive = false
+                        IsActive = false,
+                        PathToPic = user.PathToProfilePic
                     };
 
                     if (onlineUsers.Contains(res[i])) { a.IsActive = true; }
